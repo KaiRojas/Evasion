@@ -20,9 +20,11 @@ interface PoliceStopsLayerProps {
 }
 
 const SOURCE_ID = 'police-stops-source';
+const ALL_POINTS_SOURCE_ID = 'police-stops-all-source'; // Non-clustered source
 const CLUSTER_LAYER_ID = 'police-stops-clusters';
 const CLUSTER_COUNT_LAYER_ID = 'police-stops-cluster-count';
 const UNCLUSTERED_LAYER_ID = 'police-stops-unclustered';
+const ALL_POINTS_LAYER_ID = 'police-stops-all-points'; // Layer for all points mode
 
 export function PoliceStopsLayer({
   visible = true,
@@ -87,9 +89,15 @@ export function PoliceStopsLayer({
       
       const json = await res.json();
       if (json.success) {
-        const source = map.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
-        if (source) {
-          source.setData(json.data);
+        // Update clustered source
+        const clusterSource = map.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
+        if (clusterSource) {
+          clusterSource.setData(json.data);
+        }
+        // Update non-clustered source (for all points mode)
+        const allPointsSource = map.getSource(ALL_POINTS_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
+        if (allPointsSource) {
+          allPointsSource.setData(json.data);
         }
       }
     } catch (error) {
@@ -263,6 +271,60 @@ export function PoliceStopsLayer({
           });
         }
 
+        // NON-CLUSTERED SOURCE AND LAYER for "All Points" mode
+        // This source doesn't cluster, so all points are always available
+        if (!map.getSource(ALL_POINTS_SOURCE_ID)) {
+          map.addSource(ALL_POINTS_SOURCE_ID, {
+            type: 'geojson',
+            data: { type: 'FeatureCollection', features: [] },
+            cluster: false, // No clustering!
+          });
+        }
+
+        // All points layer - shows at any zoom level when enabled
+        if (!map.getLayer(ALL_POINTS_LAYER_ID)) {
+          map.addLayer({
+            id: ALL_POINTS_LAYER_ID,
+            type: 'circle',
+            source: ALL_POINTS_SOURCE_ID,
+            layout: {
+              'visibility': 'none', // Hidden by default
+            },
+            paint: {
+              'circle-color': [
+                'case',
+                ['get', 'alcohol'], '#ef4444',      // Red for alcohol
+                ['get', 'accident'], '#f97316',     // Orange for accident  
+                ['==', ['get', 'violationType'], 'Citation'], '#3b82f6', // Blue
+                ['==', ['get', 'violationType'], 'Warning'], '#22c55e',  // Green
+                '#8b5cf6',  // Purple default
+              ],
+              // Scale with zoom for visibility at all levels
+              'circle-radius': [
+                'interpolate',
+                ['exponential', 1.5],
+                ['zoom'],
+                5, 2,
+                8, 3,
+                10, 4,
+                13, 6,
+                15, 8,
+                17, 12,
+              ],
+              'circle-stroke-width': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                5, 0.5,
+                10, 1,
+                15, 2,
+              ],
+              'circle-stroke-color': '#fff',
+              'circle-opacity': 0.85,
+            },
+          });
+        }
+
         setLayersAdded(true);
       } catch (error) {
         console.warn('Error adding police stops layers:', error);
@@ -323,15 +385,33 @@ export function PoliceStopsLayer({
       map.once('style.load', initializeLayers);
     }
 
+    // Click handler for all points layer
+    const handleAllPointsClick = (e: mapboxgl.MapLayerMouseEvent) => {
+      try {
+        const features = map.queryRenderedFeatures(e.point, { layers: [ALL_POINTS_LAYER_ID] });
+        if (!features.length) return;
+        
+        const properties = features[0].properties;
+        if (onStopClick && properties) {
+          onStopClick(properties);
+        }
+      } catch {
+        // Ignore errors
+      }
+    };
+
     // Add event listeners after a short delay to ensure layers exist
     const setupEvents = () => {
       try {
         map.on('click', CLUSTER_LAYER_ID, handleClusterClick);
         map.on('click', UNCLUSTERED_LAYER_ID, handlePointClick);
+        map.on('click', ALL_POINTS_LAYER_ID, handleAllPointsClick);
         map.on('mouseenter', CLUSTER_LAYER_ID, handleMouseEnter);
         map.on('mouseleave', CLUSTER_LAYER_ID, handleMouseLeave);
         map.on('mouseenter', UNCLUSTERED_LAYER_ID, handleMouseEnter);
         map.on('mouseleave', UNCLUSTERED_LAYER_ID, handleMouseLeave);
+        map.on('mouseenter', ALL_POINTS_LAYER_ID, handleMouseEnter);
+        map.on('mouseleave', ALL_POINTS_LAYER_ID, handleMouseLeave);
       } catch {
         // Ignore errors
       }
@@ -346,14 +426,21 @@ export function PoliceStopsLayer({
       try {
         currentMap.off('click', CLUSTER_LAYER_ID, handleClusterClick);
         currentMap.off('click', UNCLUSTERED_LAYER_ID, handlePointClick);
+        currentMap.off('click', ALL_POINTS_LAYER_ID, handleAllPointsClick);
         currentMap.off('mouseenter', CLUSTER_LAYER_ID, handleMouseEnter);
         currentMap.off('mouseleave', CLUSTER_LAYER_ID, handleMouseLeave);
         currentMap.off('mouseenter', UNCLUSTERED_LAYER_ID, handleMouseEnter);
         currentMap.off('mouseleave', UNCLUSTERED_LAYER_ID, handleMouseLeave);
+        currentMap.off('mouseenter', ALL_POINTS_LAYER_ID, handleMouseEnter);
+        currentMap.off('mouseleave', ALL_POINTS_LAYER_ID, handleMouseLeave);
 
+        // Remove layers
+        if (currentMap.getLayer(ALL_POINTS_LAYER_ID)) currentMap.removeLayer(ALL_POINTS_LAYER_ID);
         if (currentMap.getLayer(UNCLUSTERED_LAYER_ID)) currentMap.removeLayer(UNCLUSTERED_LAYER_ID);
         if (currentMap.getLayer(CLUSTER_COUNT_LAYER_ID)) currentMap.removeLayer(CLUSTER_COUNT_LAYER_ID);
         if (currentMap.getLayer(CLUSTER_LAYER_ID)) currentMap.removeLayer(CLUSTER_LAYER_ID);
+        // Remove sources
+        if (currentMap.getSource(ALL_POINTS_SOURCE_ID)) currentMap.removeSource(ALL_POINTS_SOURCE_ID);
         if (currentMap.getSource(SOURCE_ID)) currentMap.removeSource(SOURCE_ID);
       } catch {
         // Map may have been destroyed
@@ -392,12 +479,13 @@ export function PoliceStopsLayer({
     if (!map || !layersAdded) return;
 
     try {
-      // showAllPoints: hide clusters, show all individual points
+      // showAllPoints: hide clusters/unclustered, show all points layer
       // lowDetailMode: show clusters, hide individual points
-      // default: show both (clusters auto-hide at high zoom)
+      // default: show clusters + unclustered (auto-transition at zoom 13)
       
       const clusterVisibility = visible && !showAllPoints ? 'visible' : 'none';
-      const pointsVisibility = visible && !lowDetailMode ? 'visible' : 'none';
+      const unclusteredVisibility = visible && !lowDetailMode && !showAllPoints ? 'visible' : 'none';
+      const allPointsVisibility = visible && showAllPoints ? 'visible' : 'none';
       
       if (map.getLayer(CLUSTER_LAYER_ID)) {
         map.setLayoutProperty(CLUSTER_LAYER_ID, 'visibility', clusterVisibility);
@@ -406,15 +494,10 @@ export function PoliceStopsLayer({
         map.setLayoutProperty(CLUSTER_COUNT_LAYER_ID, 'visibility', clusterVisibility);
       }
       if (map.getLayer(UNCLUSTERED_LAYER_ID)) {
-        map.setLayoutProperty(UNCLUSTERED_LAYER_ID, 'visibility', pointsVisibility);
-        
-        // When showAllPoints is true, remove the minzoom restriction
-        if (showAllPoints) {
-          map.setLayerZoomRange(UNCLUSTERED_LAYER_ID, 0, 24);
-        } else {
-          // Restore normal minzoom (points visible at zoom 13+)
-          map.setLayerZoomRange(UNCLUSTERED_LAYER_ID, 13, 24);
-        }
+        map.setLayoutProperty(UNCLUSTERED_LAYER_ID, 'visibility', unclusteredVisibility);
+      }
+      if (map.getLayer(ALL_POINTS_LAYER_ID)) {
+        map.setLayoutProperty(ALL_POINTS_LAYER_ID, 'visibility', allPointsVisibility);
       }
     } catch {
       // Ignore errors
