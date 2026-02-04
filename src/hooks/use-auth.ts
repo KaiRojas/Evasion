@@ -13,6 +13,10 @@ import type { AuthUser } from '@/types';
 
 // DEV MODE: Test credentials for local development
 const DEV_MODE = process.env.NODE_ENV === 'development';
+const SUPABASE_CONFIGURED = process.env.NEXT_PUBLIC_SUPABASE_URL && 
+  !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your-') &&
+  !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('localhost:54321');
+
 const DEV_USER: AuthUser = {
   id: 'dev-user-001',
   email: 'test@evasion.dev',
@@ -33,6 +37,12 @@ export function useAuth() {
     const initAuth = async () => {
       // Check if already has dev user in store
       if (DEV_MODE && user?.id === 'dev-user-001') {
+        setLoading(false);
+        return;
+      }
+
+      // Skip Supabase if not configured
+      if (!SUPABASE_CONFIGURED) {
         setLoading(false);
         return;
       }
@@ -70,6 +80,11 @@ export function useAuth() {
     };
 
     initAuth();
+
+    // Skip auth listener if Supabase not configured
+    if (!SUPABASE_CONFIGURED) {
+      return;
+    }
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -112,6 +127,16 @@ export function useAuth() {
       console.log('🔧 DEV MODE: Using test account');
       setUser(DEV_USER);
       return { user: DEV_USER, session: null };
+    }
+    
+    // If Supabase isn't configured, show helpful error
+    if (!SUPABASE_CONFIGURED) {
+      setLoading(false);
+      throw new Error(
+        DEV_MODE 
+          ? 'Use test@evasion.dev / Test1234 for dev login, or configure Supabase in .env.local'
+          : 'Authentication service not configured'
+      );
     }
     
     const { data, error } = await supabase.auth.signInWithPassword({
