@@ -19,11 +19,13 @@ import {
   Menu,
   X,
   Bell,
+  BarChart3,
 } from 'lucide-react';
 
 const navigation = [
   { name: 'Map', href: '/map', icon: Map },
   { name: 'Routes', href: '/routes', icon: Route },
+  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   { name: 'Events', href: '/events', icon: Calendar },
   { name: 'Forums', href: '/forums', icon: MessageSquare },
   { name: 'Garage', href: '/garage', icon: Warehouse },

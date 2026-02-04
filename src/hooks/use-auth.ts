@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/stores/auth-store';
 import type { AuthUser } from '@/types';
+import type { Session } from '@supabase/supabase-js';
 
 // DEV MODE: Test credentials for local development
 const DEV_MODE = process.env.NODE_ENV === 'development';
@@ -88,7 +89,7 @@ export function useAuth() {
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (event: string, session: Session | null) => {
         if (event === 'SIGNED_IN' && session?.user) {
           // Fetch user profile
           const { data: profile } = await supabase

@@ -46,9 +46,9 @@ function LoginForm() {
     const result = loginSchema.safeParse(formData);
     if (!result.success) {
       const fieldErrors: Partial<Record<keyof LoginInput, string>> = {};
-      result.error.errors.forEach(err => {
-        const field = err.path[0] as keyof LoginInput;
-        fieldErrors[field] = err.message;
+      result.error.issues.forEach(issue => {
+        const field = issue.path[0] as keyof LoginInput;
+        fieldErrors[field] = issue.message;
       });
       setErrors(fieldErrors);
       setIsLoading(false);

@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { MapProvider, BaseMap, FriendMarker, PoliceMarker } from '@/components/map';
+import { MapProvider, BaseMap, FriendMarker, PoliceMarker, HeatmapLayer, useMap } from '@/components/map';
 import { Button } from '@/components/ui';
+import { PredictionPanel } from '@/components/analytics';
 import { useGeolocation } from '@/hooks';
 import { useLocationStore } from '@/stores';
 import type { LiveUserPin, PoliceAlert } from '@/types';
@@ -14,7 +15,8 @@ import {
   WifiOff,
   Plus,
   Locate,
-  X
+  X,
+  Layers
 } from 'lucide-react';
 
 // Mock data for demo - replace with real-time data later
@@ -64,8 +66,32 @@ export default function MapPage() {
   const [alerts, setAlerts] = useState<PoliceAlert[]>(MOCK_ALERTS);
   const [showFriends, setShowFriends] = useState(true);
   const [showAlerts, setShowAlerts] = useState(true);
+  const [showHeatmap, setShowHeatmap] = useState(false);
+  const [heatmapData, setHeatmapData] = useState<GeoJSON.FeatureCollection | null>(null);
   const [selectedFriend, setSelectedFriend] = useState<LiveUserPin | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
+  
+  // Fetch heatmap data
+  useEffect(() => {
+    if (showHeatmap && !heatmapData) {
+      fetch('/api/analytics/heatmap')
+        .then(res => {
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+          }
+          return res.json();
+        })
+        .then(json => {
+          if (json.success) {
+            setHeatmapData(json.data);
+          }
+        })
+        .catch(err => {
+          console.warn('Failed to load heatmap data:', err.message);
+          // Heatmap will be empty until data is imported
+        });
+    }
+  }, [showHeatmap, heatmapData]);
 
   // Initial center on user location if available
   const initialCenter: [number, number] = location 
@@ -111,6 +137,15 @@ export default function MapPage() {
               onClick={handleAlertClick}
             />
           ))}
+          
+          {/* Historical heatmap layer */}
+          <HeatmapLayer
+            data={heatmapData}
+            visible={showHeatmap}
+            radius={25}
+            intensity={1.2}
+            opacity={0.6}
+          />
         </BaseMap>
 
         {/* Top controls */}
@@ -155,7 +190,22 @@ export default function MapPage() {
             <AlertTriangle size={16} className="mr-1" />
             Alerts ({alerts.length})
           </Button>
+          <Button
+            variant={showHeatmap ? 'secondary' : 'outline'}
+            size="sm"
+            onClick={() => setShowHeatmap(!showHeatmap)}
+            className="shadow-lg"
+          >
+            <Layers size={16} className="mr-1" />
+            Heatmap
+          </Button>
         </div>
+        
+        {/* Prediction panel */}
+        <PredictionPanel
+          userLocation={location ? { latitude: location.latitude, longitude: location.longitude } : null}
+          className="absolute top-16 right-4 w-80"
+        />
 
         {/* Report button */}
         <div className="absolute bottom-6 right-6">

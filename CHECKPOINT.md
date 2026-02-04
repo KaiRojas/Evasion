@@ -1,15 +1,30 @@
 # Evasion V2 - Development Checkpoint
 
-## Current Status: Phase 2 - Mapping System Complete ✅
+## Current Status: Phase 3 - Police Data Analytics Complete ✅
 
 **Date:** February 4, 2026  
-**Version:** 0.2.0
+**Version:** 0.3.0
 
 ---
 
 ## What's Been Built
 
-### NEW: Mapping System (Phase 2)
+### NEW: Police Data Analytics System (Phase 3)
+- [x] TrafficViolation model in Prisma schema (1M+ records supported)
+- [x] ViolationHotspot aggregation model for fast queries
+- [x] Streaming CSV import script (`scripts/import-violations.ts`)
+- [x] Heatmap API endpoint (`/api/analytics/heatmap`)
+- [x] Time patterns API (`/api/analytics/time-patterns`)
+- [x] Statistics API (`/api/analytics/stats`)
+- [x] Prediction API (`/api/analytics/predict`)
+- [x] Mapbox heatmap layer component
+- [x] Interactive analytics dashboard (`/analytics`)
+- [x] Time distribution charts (hourly, daily)
+- [x] Top locations, violation types, vehicle makes
+- [x] Prediction panel with risk levels
+- [x] Integration into map page
+
+### Mapping System (Phase 2)
 - [x] Mapbox GL JS integration with dark theme
 - [x] Live map page (`/map`) with friend pins
 - [x] Police alert markers with pulsing animation
@@ -20,14 +35,17 @@
 - [x] Socket.io server for real-time updates
 - [x] Location broadcasting hooks
 - [x] Alert reporting modal
+- [x] Heatmap toggle on map page
+- [x] Prediction panel overlay
 
-### 1. Project Infrastructure
-- [x] Next.js 14 with App Router
+### Project Infrastructure
+- [x] Next.js 16 with App Router
 - [x] TypeScript configuration
 - [x] Tailwind CSS styling
 - [x] ESLint for code quality
+- [x] Recharts for data visualization
 
-### 2. Database Schema (Prisma)
+### Database Schema (Prisma)
 - [x] User accounts with age verification (16+)
 - [x] Vehicles & garage system
 - [x] Friendships (bidirectional)
@@ -37,37 +55,37 @@
 - [x] Real-time location tracking
 - [x] Police reports & predictions
 - [x] Car spotting
+- [x] **Traffic violations (1M+ historical records)**
+- [x] **Violation hotspots (aggregated for fast queries)**
 
-### 3. Docker Development Stack
+### Docker Development Stack
 - [x] PostgreSQL 16 with PostGIS
 - [x] Redis for caching/pub-sub
-- [x] Redis Commander UI
 
-### 4. Authentication System
+### Authentication System
 - [x] Supabase client configuration
 - [x] Server & middleware clients
 - [x] Age verification (16+ requirement)
 - [x] Login page with validation
 - [x] Signup page with validation
 - [x] Protected route middleware
+- [x] Dev mode bypass for testing
 
-### 5. State Management
+### State Management
 - [x] Zustand auth store
 - [x] Zustand location store
 - [x] Custom hooks (useAuth, useGeolocation)
 
-### 6. UI Components
-- [x] Button component (variants, sizes, loading)
-- [x] Input component (labels, errors, hints)
-- [x] Card component (variants)
+### UI Components
+- [x] Button, Input, Card components
 - [x] Landing page
 - [x] Auth layout
 - [x] Dashboard layout with sidebar
-
-### 7. Validation Schemas (Zod)
-- [x] Auth schemas (login, signup, password reset)
-- [x] User profile schemas
-- [x] Vehicle schemas
+- [x] **StatsCard component**
+- [x] **TimeChart component**
+- [x] **TopList component**
+- [x] **PredictionPanel component**
+- [x] **HeatmapLayer component**
 
 ---
 
@@ -78,31 +96,69 @@ src/
 ├── app/
 │   ├── (auth)/           # Auth pages (login, signup)
 │   ├── (dashboard)/      # Protected dashboard pages
-│   ├── globals.css       # Global styles
-│   ├── layout.tsx        # Root layout
-│   └── page.tsx          # Landing page
+│   │   ├── analytics/    # 🆕 Analytics dashboard
+│   │   ├── dashboard/
+│   │   ├── map/
+│   │   └── routes/
+│   ├── api/
+│   │   ├── analytics/    # 🆕 Analytics APIs
+│   │   │   ├── heatmap/
+│   │   │   ├── predict/
+│   │   │   ├── stats/
+│   │   │   └── time-patterns/
+│   │   ├── alerts/
+│   │   ├── location/
+│   │   └── routes/
+│   └── ...
 ├── components/
-│   └── ui/               # Reusable UI components
-├── hooks/                # Custom React hooks
+│   ├── analytics/        # 🆕 Analytics components
+│   │   ├── StatsCard.tsx
+│   │   ├── TimeChart.tsx
+│   │   ├── TopList.tsx
+│   │   └── PredictionPanel.tsx
+│   ├── map/
+│   │   ├── BaseMap.tsx
+│   │   ├── FriendMarker.tsx
+│   │   ├── HeatmapLayer.tsx  # 🆕
+│   │   ├── PoliceMarker.tsx
+│   │   └── RouteLayer.tsx
+│   └── ui/
+├── hooks/
 ├── lib/
-│   ├── supabase/         # Supabase client config
-│   ├── validations/      # Zod schemas
-│   ├── prisma.ts         # Prisma client
-│   └── utils.ts          # Utility functions
-├── stores/               # Zustand state stores
-├── types/                # TypeScript types
-└── middleware.ts         # Route protection
+├── stores/
+└── types/
+scripts/
+└── import-violations.ts  # 🆕 CSV import script
 ```
 
 ---
 
-## Next Steps (Phase 3)
+## How to Import Police Data
 
-### Immediate Tasks
-1. [ ] Get Mapbox token and test map rendering
-2. [ ] Set up Supabase project for production auth
-3. [ ] Run Prisma migrations against PostgreSQL
-4. [ ] Test real-time location broadcasting
+### 1. Start Database
+```bash
+npm run docker:up
+npx prisma db push
+```
+
+### 2. Import CSV
+```bash
+npm run db:import
+# Or with custom path:
+npx tsx scripts/import-violations.ts "path/to/data.csv"
+```
+
+### 3. Access Analytics
+Navigate to `/analytics` to see:
+- Total stops, alcohol-related, accidents
+- Heatmap visualization
+- Time pattern charts
+- Top locations and violation types
+- Predictive hotspots
+
+---
+
+## Next Steps (Phase 4)
 
 ### Feature Development
 1. [ ] Complete vehicle CRUD (garage feature)
@@ -111,44 +167,33 @@ src/
 4. [ ] Build forum functionality
 5. [ ] Add route ratings and reviews
 6. [ ] User profile pages
+7. [ ] Real-time Socket.io integration for live updates
+
+### Analytics Enhancements
+1. [ ] Machine learning model for better predictions
+2. [ ] Route safety scoring based on historical data
+3. [ ] Time-based alerts for high-risk areas
+4. [ ] Export functionality for reports
 
 ---
 
-## How to Continue Development
+## Environment Variables
 
-### 1. Start Local Services
-```bash
-docker-compose up -d
+```env
+# Database
+DATABASE_URL=postgresql://postgres:postgres@localhost:54322/evasion
+
+# Supabase (optional for local dev)
+NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# Mapbox
+NEXT_PUBLIC_MAPBOX_TOKEN=your-mapbox-token
+
+# Redis
+REDIS_URL=redis://localhost:6379
 ```
-
-### 2. Set Up Database
-```bash
-npx prisma generate    # Generate Prisma client
-npx prisma db push     # Push schema to database
-npx prisma studio      # Open database GUI
-```
-
-### 3. Configure Environment
-Create `.env.local` with your Supabase credentials:
-- NEXT_PUBLIC_SUPABASE_URL
-- NEXT_PUBLIC_SUPABASE_ANON_KEY
-- SUPABASE_SERVICE_ROLE_KEY
-- NEXT_PUBLIC_MAPBOX_TOKEN
-
-### 4. Run Development Server
-```bash
-npm run dev
-```
-
----
-
-## Environment Setup Checklist
-
-- [ ] Docker Desktop installed and running
-- [ ] Node.js 18+ installed
-- [ ] Supabase account created (free tier works)
-- [ ] Mapbox account created (free tier works)
-- [ ] Environment variables configured
 
 ---
 
@@ -156,15 +201,16 @@ npm run dev
 
 | Category | Technology |
 |----------|------------|
-| Framework | Next.js 14 |
+| Framework | Next.js 16 |
 | Language | TypeScript |
 | Styling | Tailwind CSS |
 | Database | PostgreSQL + PostGIS |
-| ORM | Prisma |
+| ORM | Prisma 5 |
 | Auth | Supabase Auth |
 | State | Zustand |
 | Forms | Zod validation |
 | Maps | Mapbox GL JS |
+| Charts | Recharts |
 | Real-time | Socket.io + Supabase Realtime |
 | Cache | Redis |
 
@@ -172,8 +218,8 @@ npm run dev
 
 ## Notes
 
-- The database schema supports all MVP features
-- PostGIS extension enables geospatial queries for location features
-- Age verification is enforced at signup (must be 16+)
-- Privacy settings are stored as JSON for flexibility
-- Real-time location data auto-expires for privacy
+- Police data analytics uses 424MB CSV with 1,048,597 traffic violation records
+- Hotspot aggregation enables fast queries by pre-computing grid cells
+- Predictions are based on historical time/location patterns
+- Heatmap layer uses Mapbox GL native heatmap for performance
+- All analytics endpoints support filtering by time and location

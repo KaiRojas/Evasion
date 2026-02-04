@@ -1,0 +1,259 @@
+'use client';
+
+import { useState } from 'react';
+import { Button } from '@/components/ui';
+import { 
+  Filter, 
+  X, 
+  ChevronDown, 
+  ChevronUp,
+  AlertTriangle,
+  Car,
+  Clock,
+  Calendar,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+export interface MapFilters {
+  violationType: string | null;
+  hasAlcohol: boolean | null;
+  hasAccident: boolean | null;
+  hourStart: number | null;
+  hourEnd: number | null;
+  dayOfWeek: number | null;
+}
+
+interface MapFilterPanelProps {
+  filters: MapFilters;
+  onFiltersChange: (filters: MapFilters) => void;
+  className?: string;
+}
+
+const VIOLATION_TYPES = [
+  { value: null, label: 'All Types' },
+  { value: 'Citation', label: 'Citation' },
+  { value: 'Warning', label: 'Warning' },
+  { value: 'ESERO', label: 'ESERO' },
+];
+
+const DAYS = [
+  { value: null, label: 'All Days' },
+  { value: 0, label: 'Sunday' },
+  { value: 1, label: 'Monday' },
+  { value: 2, label: 'Tuesday' },
+  { value: 3, label: 'Wednesday' },
+  { value: 4, label: 'Thursday' },
+  { value: 5, label: 'Friday' },
+  { value: 6, label: 'Saturday' },
+];
+
+const TIME_RANGES = [
+  { value: null, label: 'All Hours' },
+  { value: [0, 5], label: 'Late Night (12am-6am)' },
+  { value: [6, 9], label: 'Morning Rush (6am-10am)' },
+  { value: [10, 14], label: 'Midday (10am-3pm)' },
+  { value: [15, 18], label: 'Evening Rush (3pm-7pm)' },
+  { value: [19, 23], label: 'Night (7pm-12am)' },
+];
+
+export function MapFilterPanel({
+  filters,
+  onFiltersChange,
+  className,
+}: MapFilterPanelProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const activeFilterCount = [
+    filters.violationType,
+    filters.hasAlcohol,
+    filters.hasAccident,
+    filters.hourStart !== null,
+    filters.dayOfWeek !== null,
+  ].filter(Boolean).length;
+
+  const clearFilters = () => {
+    onFiltersChange({
+      violationType: null,
+      hasAlcohol: null,
+      hasAccident: null,
+      hourStart: null,
+      hourEnd: null,
+      dayOfWeek: null,
+    });
+  };
+
+  const updateFilter = <K extends keyof MapFilters>(key: K, value: MapFilters[K]) => {
+    onFiltersChange({ ...filters, [key]: value });
+  };
+
+  return (
+    <div
+      className={cn(
+        'bg-zinc-900/95 backdrop-blur-sm border border-zinc-800 rounded-xl shadow-xl overflow-hidden',
+        className
+      )}
+    >
+      {/* Header */}
+      <button
+        className="w-full p-3 flex items-center justify-between hover:bg-zinc-800/50 transition-colors"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center gap-2">
+          <Filter size={18} className="text-orange-500" />
+          <span className="font-medium text-white">Filters</span>
+          {activeFilterCount > 0 && (
+            <span className="px-2 py-0.5 bg-orange-500/20 text-orange-400 text-xs rounded-full">
+              {activeFilterCount}
+            </span>
+          )}
+        </div>
+        {isExpanded ? (
+          <ChevronUp size={18} className="text-zinc-400" />
+        ) : (
+          <ChevronDown size={18} className="text-zinc-400" />
+        )}
+      </button>
+
+      {/* Expanded content */}
+      {isExpanded && (
+        <div className="p-3 pt-0 space-y-4 border-t border-zinc-800">
+          {/* Violation Type */}
+          <div>
+            <label className="text-xs text-zinc-400 mb-1.5 block flex items-center gap-1">
+              <Car size={12} />
+              Violation Type
+            </label>
+            <select
+              value={filters.violationType || ''}
+              onChange={(e) => updateFilter('violationType', e.target.value || null)}
+              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              {VIOLATION_TYPES.map((type) => (
+                <option key={type.label} value={type.value || ''}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Quick Filters */}
+          <div>
+            <label className="text-xs text-zinc-400 mb-1.5 block flex items-center gap-1">
+              <AlertTriangle size={12} />
+              Incident Type
+            </label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => updateFilter('hasAlcohol', filters.hasAlcohol === true ? null : true)}
+                className={cn(
+                  'flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors border',
+                  filters.hasAlcohol === true
+                    ? 'bg-red-500/20 border-red-500/50 text-red-400'
+                    : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600'
+                )}
+              >
+                🍺 Alcohol
+              </button>
+              <button
+                onClick={() => updateFilter('hasAccident', filters.hasAccident === true ? null : true)}
+                className={cn(
+                  'flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors border',
+                  filters.hasAccident === true
+                    ? 'bg-orange-500/20 border-orange-500/50 text-orange-400'
+                    : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600'
+                )}
+              >
+                💥 Accident
+              </button>
+            </div>
+          </div>
+
+          {/* Time Range */}
+          <div>
+            <label className="text-xs text-zinc-400 mb-1.5 block flex items-center gap-1">
+              <Clock size={12} />
+              Time of Day
+            </label>
+            <select
+              value={filters.hourStart !== null ? `${filters.hourStart}-${filters.hourEnd}` : ''}
+              onChange={(e) => {
+                if (!e.target.value) {
+                  updateFilter('hourStart', null);
+                  onFiltersChange({ ...filters, hourStart: null, hourEnd: null });
+                } else {
+                  const [start, end] = e.target.value.split('-').map(Number);
+                  onFiltersChange({ ...filters, hourStart: start, hourEnd: end });
+                }
+              }}
+              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              {TIME_RANGES.map((range) => (
+                <option 
+                  key={range.label} 
+                  value={range.value ? `${range.value[0]}-${range.value[1]}` : ''}
+                >
+                  {range.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Day of Week */}
+          <div>
+            <label className="text-xs text-zinc-400 mb-1.5 block flex items-center gap-1">
+              <Calendar size={12} />
+              Day of Week
+            </label>
+            <select
+              value={filters.dayOfWeek ?? ''}
+              onChange={(e) => updateFilter('dayOfWeek', e.target.value ? parseInt(e.target.value) : null)}
+              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              {DAYS.map((day) => (
+                <option key={day.label} value={day.value ?? ''}>
+                  {day.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Clear Button */}
+          {activeFilterCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="w-full"
+            >
+              <X size={14} className="mr-1" />
+              Clear All Filters
+            </Button>
+          )}
+
+          {/* Legend */}
+          <div className="pt-2 border-t border-zinc-800">
+            <p className="text-xs text-zinc-500 mb-2">Point Colors</p>
+            <div className="grid grid-cols-2 gap-1 text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full bg-red-500" />
+                <span className="text-zinc-400">Alcohol</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full bg-orange-500" />
+                <span className="text-zinc-400">Accident</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full bg-blue-500" />
+                <span className="text-zinc-400">Citation</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full bg-green-500" />
+                <span className="text-zinc-400">Warning</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

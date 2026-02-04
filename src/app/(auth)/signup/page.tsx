@@ -49,10 +49,10 @@ export default function SignupPage() {
     const result = signupSchema.safeParse(formData);
     if (!result.success) {
       const fieldErrors: Partial<Record<keyof SignupInput, string>> = {};
-      result.error.errors.forEach(err => {
-        const field = err.path[0] as keyof SignupInput;
+      result.error.issues.forEach(issue => {
+        const field = issue.path[0] as keyof SignupInput;
         if (!fieldErrors[field]) {
-          fieldErrors[field] = err.message;
+          fieldErrors[field] = issue.message;
         }
       });
       setErrors(fieldErrors);

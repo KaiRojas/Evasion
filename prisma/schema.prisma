@@ -8,6 +8,7 @@ generator client {
 
 datasource db {
   provider   = "postgresql"
+  url        = env("DATABASE_URL")
   extensions = [postgis, uuidOssp(map: "uuid-ossp"), pgTrgm(map: "pg_trgm")]
 }
 
@@ -497,6 +498,98 @@ enum ReportType {
   SPEED_TRAP    // Speed trap
   CHECKPOINT    // Checkpoint/roadblock
   ACCIDENT      // Accident scene with police
+}
+
+// ============================================
+// TRAFFIC VIOLATIONS (Historical Data Analytics)
+// ============================================
+
+model TrafficViolation {
+  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  seqId           String?   @map("seq_id") @db.VarChar(100) // Original CSV ID
+  
+  // Time data
+  stopDate        DateTime  @map("stop_date") @db.Date
+  stopTime        DateTime  @map("stop_time") @db.Time
+  
+  // Location data
+  agency          String?   @db.VarChar(50)
+  subAgency       String?   @map("sub_agency") @db.VarChar(100)
+  location        String?   @db.Text
+  latitude        Float
+  longitude       Float
+  
+  // Violation details
+  description     String?   @db.Text
+  violationType   String?   @map("violation_type") @db.VarChar(50)
+  charge          String?   @db.VarChar(100)
+  article         String?   @db.VarChar(50)
+  
+  // Vehicle info
+  vehicleType     String?   @map("vehicle_type") @db.VarChar(50)
+  vehicleYear     Int?      @map("vehicle_year")
+  vehicleMake     String?   @map("vehicle_make") @db.VarChar(50)
+  vehicleModel    String?   @map("vehicle_model") @db.VarChar(50)
+  vehicleColor    String?   @map("vehicle_color") @db.VarChar(30)
+  
+  // Incident flags
+  accident        Boolean   @default(false)
+  personalInjury  Boolean   @default(false) @map("personal_injury")
+  propertyDamage  Boolean   @default(false) @map("property_damage")
+  fatal           Boolean   @default(false)
+  alcohol         Boolean   @default(false)
+  workZone        Boolean   @default(false) @map("work_zone")
+  
+  // Search info
+  searchConducted Boolean   @default(false) @map("search_conducted")
+  
+  // Arrest info
+  arrestType      String?   @map("arrest_type") @db.VarChar(50)
+  
+  // Demographics (for pattern analysis)
+  driverState     String?   @map("driver_state") @db.VarChar(10)
+  
+  // Metadata
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@index([stopDate])
+  @@index([stopTime])
+  @@index([subAgency])
+  @@index([latitude, longitude])
+  @@index([violationType])
+  @@index([alcohol])
+  @@index([accident])
+  @@map("traffic_violations")
+}
+
+// Aggregated stats for faster queries
+model ViolationHotspot {
+  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  
+  // Grid cell (rounded lat/lng for clustering)
+  gridLat         Float     @map("grid_lat")
+  gridLng         Float     @map("grid_lng")
+  
+  // Time bucket
+  hourOfDay       Int       @map("hour_of_day") // 0-23
+  dayOfWeek       Int       @map("day_of_week") // 0-6 (Sunday = 0)
+  
+  // Aggregated counts
+  totalStops      Int       @map("total_stops")
+  alcoholStops    Int       @default(0) @map("alcohol_stops")
+  accidentStops   Int       @default(0) @map("accident_stops")
+  
+  // Calculated probability score
+  probability     Float     @default(0) // 0.0 to 1.0
+  
+  // Last updated
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@unique([gridLat, gridLng, hourOfDay, dayOfWeek])
+  @@index([probability])
+  @@index([hourOfDay])
+  @@index([dayOfWeek])
+  @@map("violation_hotspots")
 }
 
 // ============================================
