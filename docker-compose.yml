@@ -1,0 +1,57 @@
+# Evasion V2 - Local Development Stack
+# Run with: docker-compose up -d
+
+version: '3.8'
+
+services:
+  # PostgreSQL with PostGIS for geospatial queries
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: evasion-postgres
+    restart: unless-stopped
+    ports:
+      - "54322:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: evasion
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for real-time pub/sub and caching
+  redis:
+    image: redis:7-alpine
+    container_name: evasion-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Commander - Web UI for Redis (development only)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: evasion-redis-ui
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    depends_on:
+      - redis
+
+volumes:
+  postgres_data:
+  redis_data:
