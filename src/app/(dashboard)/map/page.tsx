@@ -10,10 +10,9 @@ import {
   Navigation, 
   Users, 
   AlertTriangle, 
-  Radio,
-  RadioOff,
+  Wifi,
+  WifiOff,
   Plus,
-  Filter,
   Locate,
   X
 } from 'lucide-react';
@@ -124,12 +123,12 @@ export default function MapPage() {
           >
             {isBroadcasting ? (
               <>
-                <Radio size={16} className="mr-2 animate-pulse" />
+                <Wifi size={16} className="mr-2 animate-pulse" />
                 Broadcasting
               </>
             ) : (
               <>
-                <RadioOff size={16} className="mr-2" />
+                <WifiOff size={16} className="mr-2" />
                 Go Live
               </>
             )}
