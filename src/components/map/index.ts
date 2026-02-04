@@ -9,4 +9,5 @@ export { PoliceMarker } from './PoliceMarker';
 export { RouteLayer } from './RouteLayer';
 export { HeatmapLayer } from './HeatmapLayer';
 export { PoliceStopsLayer } from './PoliceStopsLayer';
+export { SpeedTrapLayer } from './SpeedTrapLayer';
 export { MapFilterPanel, type MapFilters } from './MapFilterPanel';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { MapProvider, BaseMap, HeatmapLayer, PoliceStopsLayer, MapFilterPanel, type MapFilters } from '@/components/map';
+import { MapProvider, BaseMap, HeatmapLayer, PoliceStopsLayer, SpeedTrapLayer, MapFilterPanel, type MapFilters } from '@/components/map';
 import { StatsCard, TimeChart, TopList, SpeedAnalytics } from '@/components/analytics';
 import { Button, Card, CardContent } from '@/components/ui';
 import {
@@ -15,6 +15,8 @@ import {
   Layers,
   Calendar,
   CircleDot,
+  Target,
+  X,
 } from 'lucide-react';
 
 interface StatsData {
@@ -60,11 +62,13 @@ export default function AnalyticsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [showPoints, setShowPoints] = useState(true);
+  const [showSpeedTraps, setShowSpeedTraps] = useState(false);
   const [lowDetailMode, setLowDetailMode] = useState(false);
   const [showAllPoints, setShowAllPoints] = useState(false);
   const [selectedHour, setSelectedHour] = useState<number | null>(null);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedStop, setSelectedStop] = useState<Record<string, unknown> | null>(null);
+  const [selectedTrap, setSelectedTrap] = useState<Record<string, unknown> | null>(null);
   
   // Map filters for points layer
   const [mapFilters, setMapFilters] = useState<MapFilters>({
@@ -285,6 +289,15 @@ export default function AnalyticsPage() {
               <Activity size={16} className="mr-1" />
               Heatmap
             </Button>
+            <Button
+              variant={showSpeedTraps ? 'danger' : 'outline'}
+              size="sm"
+              onClick={() => setShowSpeedTraps(!showSpeedTraps)}
+              title="Show identified speed trap locations"
+            >
+              <Target size={16} className="mr-1" />
+              {showSpeedTraps ? 'Speed Traps' : 'Speed Traps'}
+            </Button>
           </div>
         </div>
         
@@ -313,6 +326,17 @@ export default function AnalyticsPage() {
                 intensity={1.5}
                 opacity={0.6}
               />
+              
+              {/* Speed Trap markers */}
+              <SpeedTrapLayer
+                visible={showSpeedTraps}
+                year={mapFilters.year}
+                minStops={5}
+                onTrapClick={(props) => {
+                  setSelectedTrap(props);
+                  setSelectedStop(null); // Close other popup
+                }}
+              />
             </BaseMap>
           </MapProvider>
           
@@ -332,7 +356,7 @@ export default function AnalyticsPage() {
                   onClick={() => setSelectedStop(null)}
                   className="text-zinc-400 hover:text-white"
                 >
-                  ×
+                  <X size={16} />
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-2 text-sm">
@@ -363,6 +387,77 @@ export default function AnalyticsPage() {
                   </div>
                 ) : null}
               </div>
+            </div>
+          )}
+          
+          {/* Selected Speed Trap Details */}
+          {selectedTrap && (
+            <div className="absolute bottom-4 left-4 right-4 max-w-md bg-zinc-900/95 backdrop-blur-sm border border-red-800/50 rounded-xl p-4 shadow-xl">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Target className="text-red-500" size={20} />
+                  <h4 className="font-semibold text-white">Speed Trap Location</h4>
+                </div>
+                <button 
+                  onClick={() => setSelectedTrap(null)}
+                  className="text-zinc-400 hover:text-white"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="bg-zinc-800/50 rounded-lg p-2.5">
+                  <p className="text-zinc-400 text-xs mb-1">Trap Score</p>
+                  <p className="text-2xl font-bold text-red-500">
+                    {selectedTrap.trapScore ? Number(selectedTrap.trapScore).toFixed(0) : 'N/A'}
+                  </p>
+                </div>
+                <div className="bg-zinc-800/50 rounded-lg p-2.5">
+                  <p className="text-zinc-400 text-xs mb-1">Total Stops</p>
+                  <p className="text-2xl font-bold text-white">
+                    {selectedTrap.stopCount ? Number(selectedTrap.stopCount) : 'N/A'}
+                  </p>
+                </div>
+                <div className="bg-zinc-800/50 rounded-lg p-2.5">
+                  <p className="text-zinc-400 text-xs mb-1">Unique Days</p>
+                  <p className="text-lg font-semibold text-white">
+                    {selectedTrap.uniqueDays ? Number(selectedTrap.uniqueDays) : 'N/A'}
+                  </p>
+                </div>
+                <div className="bg-zinc-800/50 rounded-lg p-2.5">
+                  <p className="text-zinc-400 text-xs mb-1">Avg. Speed Over</p>
+                  <p className="text-lg font-semibold text-orange-400">
+                    {selectedTrap.avgSpeedOver ? `+${Number(selectedTrap.avgSpeedOver)} mph` : 'N/A'}
+                  </p>
+                </div>
+                {selectedTrap.maxSpeedOver && (
+                  <div className="bg-zinc-800/50 rounded-lg p-2.5">
+                    <p className="text-zinc-400 text-xs mb-1">Max Speed Over</p>
+                    <p className="text-lg font-semibold text-red-400">
+                      +{Number(selectedTrap.maxSpeedOver)} mph
+                    </p>
+                  </div>
+                )}
+                {selectedTrap.primaryMethod && (
+                  <div className="bg-zinc-800/50 rounded-lg p-2.5">
+                    <p className="text-zinc-400 text-xs mb-1">Detection</p>
+                    <p className="text-lg font-semibold text-white capitalize">
+                      {String(selectedTrap.primaryMethod)}
+                    </p>
+                  </div>
+                )}
+                {selectedTrap.location && (
+                  <div className="col-span-2 bg-zinc-800/50 rounded-lg p-2.5">
+                    <p className="text-zinc-400 text-xs mb-1">Location</p>
+                    <p className="text-white text-sm">
+                      {String(selectedTrap.location)}
+                    </p>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-zinc-500 mt-3">
+                ⚠️ High speed enforcement area - {selectedTrap.stopCount || 0} stops over {selectedTrap.uniqueDays || 0} days
+              </p>
             </div>
           )}
           

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { MapProvider, BaseMap, FriendMarker, PoliceMarker, HeatmapLayer, useMap } from '@/components/map';
+import { MapProvider, BaseMap, FriendMarker, PoliceMarker, HeatmapLayer, SpeedTrapLayer } from '@/components/map';
 import { Button } from '@/components/ui';
 import { PredictionPanel } from '@/components/analytics';
 import { useGeolocation } from '@/hooks';
@@ -16,7 +16,8 @@ import {
   Plus,
   Locate,
   X,
-  Layers
+  Layers,
+  Target
 } from 'lucide-react';
 
 // Mock data for demo - replace with real-time data later
@@ -67,8 +68,10 @@ export default function MapPage() {
   const [showFriends, setShowFriends] = useState(true);
   const [showAlerts, setShowAlerts] = useState(true);
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [showSpeedTraps, setShowSpeedTraps] = useState(true); // Show speed traps by default
   const [heatmapData, setHeatmapData] = useState<GeoJSON.FeatureCollection | null>(null);
   const [selectedFriend, setSelectedFriend] = useState<LiveUserPin | null>(null);
+  const [selectedTrap, setSelectedTrap] = useState<Record<string, unknown> | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
   
   // Fetch heatmap data
@@ -146,6 +149,16 @@ export default function MapPage() {
             intensity={1.2}
             opacity={0.6}
           />
+          
+          {/* Speed trap markers from historical data */}
+          <SpeedTrapLayer
+            visible={showSpeedTraps}
+            minStops={5}
+            onTrapClick={(props) => {
+              setSelectedTrap(props);
+              setSelectedFriend(null); // Close other panels
+            }}
+          />
         </BaseMap>
 
         {/* Top controls */}
@@ -171,7 +184,7 @@ export default function MapPage() {
         </div>
 
         {/* Filter controls */}
-        <div className="absolute top-4 right-20 flex gap-2">
+        <div className="absolute top-4 right-20 flex gap-2 flex-wrap justify-end">
           <Button
             variant={showFriends ? 'primary' : 'outline'}
             size="sm"
@@ -189,6 +202,16 @@ export default function MapPage() {
           >
             <AlertTriangle size={16} className="mr-1" />
             Alerts ({alerts.length})
+          </Button>
+          <Button
+            variant={showSpeedTraps ? 'danger' : 'outline'}
+            size="sm"
+            onClick={() => setShowSpeedTraps(!showSpeedTraps)}
+            className="shadow-lg"
+            title="Show known speed trap locations based on historical data"
+          >
+            <Target size={16} className="mr-1" />
+            Speed Traps
           </Button>
           <Button
             variant={showHeatmap ? 'secondary' : 'outline'}
@@ -297,6 +320,72 @@ export default function MapPage() {
                 <Navigation size={14} className="mr-1" />
                 Navigate
               </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Selected speed trap panel */}
+        {selectedTrap && (
+          <div className="absolute top-20 left-4 w-80 bg-zinc-900/95 backdrop-blur-sm rounded-xl border border-red-800/50 p-4 shadow-xl animate-fade-in">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                  <Target size={24} className="text-red-500" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white">Speed Trap</h3>
+                  <p className="text-sm text-zinc-400">Historical enforcement zone</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedTrap(null)}
+                className="p-1 hover:bg-zinc-800 rounded transition-colors"
+              >
+                <X size={18} className="text-zinc-400" />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+              <div className="bg-zinc-800/50 rounded-lg p-2">
+                <p className="text-zinc-400 text-xs">Trap Score</p>
+                <p className="text-xl font-bold text-red-500">
+                  {selectedTrap.trapScore ? Number(selectedTrap.trapScore).toFixed(0) : 'N/A'}
+                </p>
+              </div>
+              <div className="bg-zinc-800/50 rounded-lg p-2">
+                <p className="text-zinc-400 text-xs">Total Stops</p>
+                <p className="text-xl font-bold text-white">
+                  {selectedTrap.stopCount ? Number(selectedTrap.stopCount) : 'N/A'}
+                </p>
+              </div>
+              {selectedTrap.avgSpeedOver && (
+                <div className="bg-zinc-800/50 rounded-lg p-2">
+                  <p className="text-zinc-400 text-xs">Avg Speed Over</p>
+                  <p className="text-lg font-semibold text-orange-400">
+                    +{Number(selectedTrap.avgSpeedOver)} mph
+                  </p>
+                </div>
+              )}
+              {selectedTrap.primaryMethod && (
+                <div className="bg-zinc-800/50 rounded-lg p-2">
+                  <p className="text-zinc-400 text-xs">Detection</p>
+                  <p className="text-lg font-semibold text-white capitalize">
+                    {String(selectedTrap.primaryMethod)}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {selectedTrap.location && (
+              <div className="text-sm text-zinc-400 mb-3">
+                <span className="text-zinc-500">Location:</span>{' '}
+                <span className="text-zinc-300">{String(selectedTrap.location)}</span>
+              </div>
+            )}
+
+            <div className="text-xs text-zinc-500 flex items-center gap-1">
+              <AlertTriangle size={12} className="text-red-500" />
+              High enforcement area - drive carefully
             </div>
           </div>
         )}
