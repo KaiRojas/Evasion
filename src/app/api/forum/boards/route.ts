@@ -70,32 +70,79 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const isDev = process.env.NODE_ENV === 'development';
+
+    // In dev mode, use a mock user if auth fails
+    let user = null;
+    let authId = '';
+    let email = '';
+
+    if (isDev) {
+      // Try to get real user first
+      try {
+        const supabase = await createServerSupabaseClient();
+        const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+        if (supabaseUser) {
+          user = supabaseUser;
+          authId = supabaseUser.id;
+          email = supabaseUser.email || '';
+        }
+      } catch (error) {
+        console.log('Supabase auth failed, using dev user');
+      }
+
+      // If no user in dev mode, create a dev user
+      if (!user) {
+        authId = 'dev-user-123';
+        email = 'dev@test.com';
+        console.log('Using dev mode authentication bypass');
+      }
+    } else {
+      // Production mode - require auth
+      const supabase = await createServerSupabaseClient();
+      const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+
+      if (!supabaseUser) {
+        return NextResponse.json(
+          { success: false, error: 'You must be logged in to create a board. Please sign in first.' },
+          { status: 401 }
+        );
+      }
+
+      user = supabaseUser;
+      authId = supabaseUser.id;
+      email = supabaseUser.email || '';
     }
-    
+
     await connectDB();
-    
-    // Get forum user
-    const forumUser = await ForumUser.findOne({ authId: user.id });
+
+    // Get or create forum user
+    let forumUser = await ForumUser.findOne({ authId });
     if (!forumUser) {
-      return NextResponse.json(
-        { success: false, error: 'Please create a forum profile first' },
-        { status: 400 }
-      );
+      // Auto-create forum profile for convenience
+      const username = email.split('@')[0] || `user_${authId.substring(0, 8)}`;
+      forumUser = new ForumUser({
+        authId,
+        username,
+        displayName: username, // Add required displayName field
+        email,
+        role: 'member',
+        reputation: isDev ? 100 : 0, // Give reputation in dev mode
+      });
+      await forumUser.save();
+
+      console.log('Auto-created forum profile for user:', authId);
     }
-    
-    // Check reputation for creating boards
+
+    // Check reputation for creating boards (skip in dev mode)
     const MIN_REP_TO_CREATE_BOARD = 100;
-    if (forumUser.reputation < MIN_REP_TO_CREATE_BOARD && forumUser.role === 'member') {
+
+    if (!isDev && forumUser.reputation < MIN_REP_TO_CREATE_BOARD && forumUser.role === 'member') {
       return NextResponse.json(
-        { success: false, error: `You need ${MIN_REP_TO_CREATE_BOARD} reputation to create a board` },
+        {
+          success: false,
+          error: `You need ${MIN_REP_TO_CREATE_BOARD} reputation points to create a board. You currently have ${forumUser.reputation} points.`
+        },
         { status: 403 }
       );
     }

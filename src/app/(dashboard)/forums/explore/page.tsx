@@ -3,15 +3,15 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
-import { 
-  Search, 
-  TrendingUp, 
-  Users, 
+import {
+  Search,
+  TrendingUp,
+  Users,
   MessageSquare,
   Star,
   MapPin,
   Clock,
-  Fire,
+  Flame,
   Award,
   Zap,
   Hash,
@@ -156,7 +156,7 @@ export default function ExplorePage() {
       {/* Tabs */}
       <div className="flex gap-1 border-b border-zinc-800">
         {[
-          { id: 'threads', label: 'Hot Threads', icon: Fire },
+          { id: 'threads', label: 'Hot Threads', icon: Flame },
           { id: 'groups', label: 'Featured Groups', icon: Users },
           { id: 'users', label: 'Top Members', icon: Award },
         ].map((tab) => (

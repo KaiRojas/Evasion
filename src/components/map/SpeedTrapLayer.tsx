@@ -15,15 +15,24 @@ const SOURCE_ID = 'speed-traps-source';
 const LAYER_ID = 'speed-traps-layer';
 const LABEL_LAYER_ID = 'speed-traps-labels';
 const PULSE_LAYER_ID = 'speed-traps-pulse';
-const MARKER_IMAGE_ID = 'speed-trap-marker';
 
-// Custom SVG marker - a red pin with a radar/camera icon
-const SPEED_TRAP_MARKER_SVG = `
+// Detection method color mappings (lowercase to match database values)
+const DETECTION_METHOD_COLORS: Record<string, { color: string; imageId: string }> = {
+  'radar': { color: '#3b82f6', imageId: 'speed-trap-radar' },      // Blue
+  'laser': { color: '#dc2626', imageId: 'speed-trap-laser' },      // Red
+  'vascar': { color: '#eab308', imageId: 'speed-trap-vascar' },    // Yellow
+  'patrol': { color: '#22c55e', imageId: 'speed-trap-patrol' },    // Green
+  'automated': { color: '#8b5cf6', imageId: 'speed-trap-automated' }, // Purple
+  'default': { color: '#6b7280', imageId: 'speed-trap-default' },  // Gray
+};
+
+// Custom SVG marker generator - creates a pin with detection method color
+const createSpeedTrapMarkerSVG = (color: string): string => `
 <svg xmlns="http://www.w3.org/2000/svg" width="40" height="52" viewBox="0 0 40 52">
   <!-- Pin shadow -->
   <ellipse cx="20" cy="49" rx="8" ry="3" fill="rgba(0,0,0,0.3)"/>
   <!-- Pin body -->
-  <path d="M20 0C9 0 0 9 0 20c0 11 20 30 20 30s20-19 20-30C40 9 31 0 20 0z" fill="#dc2626"/>
+  <path d="M20 0C9 0 0 9 0 20c0 11 20 30 20 30s20-19 20-30C40 9 31 0 20 0z" fill="${color}"/>
   <!-- Pin border -->
   <path d="M20 0C9 0 0 9 0 20c0 11 20 30 20 30s20-19 20-30C40 9 31 0 20 0z" fill="none" stroke="#fff" stroke-width="2"/>
   <!-- Inner circle background -->
@@ -31,7 +40,7 @@ const SPEED_TRAP_MARKER_SVG = `
   <!-- Radar/Camera icon -->
   <g transform="translate(11, 9)">
     <!-- Camera body -->
-    <rect x="1" y="6" width="16" height="10" rx="2" fill="#dc2626"/>
+    <rect x="1" y="6" width="16" height="10" rx="2" fill="${color}"/>
     <!-- Camera lens -->
     <circle cx="9" cy="11" r="4" fill="#fff"/>
     <circle cx="9" cy="11" r="2.5" fill="#1f2937"/>
@@ -131,37 +140,49 @@ export function SpeedTrapLayer({
     }
   }, [map, year, minStops]);
 
-  // Load custom marker image
+  // Load custom marker images (one for each detection method)
   useEffect(() => {
     // #region agent log
     fetch('http://127.0.0.1:7242/ingest/8ecbc98d-1e8e-44c9-8f10-253e23d24891',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'SpeedTrapLayer.tsx:imageEffect',message:'Image load effect',data:{hasMap:!!map,isLoaded,imageLoaded},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
     // #endregion
     if (!map || !isLoaded) return;
 
-    // Check if image already exists
-    if (map.hasImage(MARKER_IMAGE_ID)) {
-      setImageLoaded(true);
-      return;
-    }
+    // Load all detection method marker images
+    const loadImages = async () => {
+      const loadPromises = Object.values(DETECTION_METHOD_COLORS).map(({ color, imageId }) => {
+        return new Promise<void>((resolve) => {
+          // Check if image already exists
+          if (map.hasImage(imageId)) {
+            resolve();
+            return;
+          }
 
-    const img = new Image();
-    img.onload = () => {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/8ecbc98d-1e8e-44c9-8f10-253e23d24891',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'SpeedTrapLayer.tsx:img.onload',message:'Image loaded successfully',data:{width:img.width,height:img.height},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
-      if (!map.hasImage(MARKER_IMAGE_ID)) {
-        map.addImage(MARKER_IMAGE_ID, img, { sdf: false });
-      }
+          const img = new Image();
+          img.onload = () => {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/8ecbc98d-1e8e-44c9-8f10-253e23d24891',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'SpeedTrapLayer.tsx:img.onload',message:'Image loaded successfully',data:{imageId,width:img.width,height:img.height},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
+            if (!map.hasImage(imageId)) {
+              map.addImage(imageId, img, { sdf: false });
+            }
+            resolve();
+          };
+          img.onerror = (err) => {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/8ecbc98d-1e8e-44c9-8f10-253e23d24891',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'SpeedTrapLayer.tsx:img.onerror',message:'Image load FAILED',data:{imageId,error:String(err)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
+            console.warn(`Failed to load speed trap marker image: ${imageId}`);
+            resolve(); // Continue even if one fails
+          };
+          img.src = svgToDataURL(createSpeedTrapMarkerSVG(color));
+        });
+      });
+
+      await Promise.all(loadPromises);
       setImageLoaded(true);
     };
-    img.onerror = (err) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/8ecbc98d-1e8e-44c9-8f10-253e23d24891',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'SpeedTrapLayer.tsx:img.onerror',message:'Image load FAILED',data:{error:String(err)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
-      console.warn('Failed to load speed trap marker image, using fallback');
-      setImageLoaded(true); // Continue with fallback
-    };
-    img.src = svgToDataURL(SPEED_TRAP_MARKER_SVG);
+
+    loadImages();
   }, [map, isLoaded]);
 
   // Initialize layers
@@ -175,7 +196,7 @@ export function SpeedTrapLayer({
     
     const initializeLayers = () => {
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/8ecbc98d-1e8e-44c9-8f10-253e23d24891',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'SpeedTrapLayer.tsx:initializeLayers',message:'initializeLayers called',data:{hasCustomImage:map.hasImage(MARKER_IMAGE_ID)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/8ecbc98d-1e8e-44c9-8f10-253e23d24891',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'SpeedTrapLayer.tsx:initializeLayers',message:'initializeLayers called',data:{hasCustomImages:map.hasImage(DETECTION_METHOD_COLORS.default.imageId)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
       // #endregion
       try {
         // Add source
@@ -186,14 +207,23 @@ export function SpeedTrapLayer({
           });
         }
 
-        // Add pulsing circle behind markers for emphasis
+        // Add pulsing circle behind markers for emphasis (color matches detection method)
         if (!map.getLayer(PULSE_LAYER_ID)) {
           map.addLayer({
             id: PULSE_LAYER_ID,
             type: 'circle',
             source: SOURCE_ID,
             paint: {
-              'circle-color': '#dc2626',
+              'circle-color': [
+                'match',
+                ['get', 'primaryMethod'],
+                'radar', '#3b82f6',
+                'laser', '#dc2626',
+                'vascar', '#eab308',
+                'patrol', '#22c55e',
+                'automated', '#8b5cf6',
+                '#6b7280', // default gray
+              ],
               'circle-radius': [
                 'interpolate',
                 ['linear'],
@@ -204,24 +234,42 @@ export function SpeedTrapLayer({
               ],
               'circle-opacity': 0.15,
               'circle-stroke-width': 2,
-              'circle-stroke-color': '#dc2626',
+              'circle-stroke-color': [
+                'match',
+                ['get', 'primaryMethod'],
+                'radar', '#3b82f6',
+                'laser', '#dc2626',
+                'vascar', '#eab308',
+                'patrol', '#22c55e',
+                'automated', '#8b5cf6',
+                '#6b7280', // default gray
+              ],
               'circle-stroke-opacity': 0.3,
             },
           });
         }
 
-        // Check if custom image loaded successfully
-        const hasCustomImage = map.hasImage(MARKER_IMAGE_ID);
+        // Check if at least one custom image loaded successfully
+        const hasCustomImage = map.hasImage(DETECTION_METHOD_COLORS.default.imageId);
 
         if (hasCustomImage) {
-          // Add pin/marker layer using custom SVG image
+          // Add pin/marker layer using custom SVG images (color-coded by detection method)
           if (!map.getLayer(LAYER_ID)) {
             map.addLayer({
               id: LAYER_ID,
               type: 'symbol',
               source: SOURCE_ID,
               layout: {
-                'icon-image': MARKER_IMAGE_ID,
+                'icon-image': [
+                  'match',
+                  ['get', 'primaryMethod'],
+                  'radar', DETECTION_METHOD_COLORS.radar.imageId,
+                  'laser', DETECTION_METHOD_COLORS.laser.imageId,
+                  'vascar', DETECTION_METHOD_COLORS.vascar.imageId,
+                  'patrol', DETECTION_METHOD_COLORS.patrol.imageId,
+                  'automated', DETECTION_METHOD_COLORS.automated.imageId,
+                  DETECTION_METHOD_COLORS.default.imageId, // default
+                ],
                 'icon-size': [
                   'interpolate',
                   ['linear'],
@@ -240,7 +288,7 @@ export function SpeedTrapLayer({
             });
           }
 
-          // Add label with stop count below the pin
+          // Add label with stop count below the pin (color matches detection method)
           if (!map.getLayer(LABEL_LAYER_ID)) {
             map.addLayer({
               id: LABEL_LAYER_ID,
@@ -263,7 +311,16 @@ export function SpeedTrapLayer({
               },
               paint: {
                 'text-color': '#fff',
-                'text-halo-color': '#dc2626',
+                'text-halo-color': [
+                  'match',
+                  ['get', 'primaryMethod'],
+                  'radar', '#3b82f6',
+                  'laser', '#dc2626',
+                  'vascar', '#eab308',
+                  'patrol', '#22c55e',
+                  'automated', '#8b5cf6',
+                  '#6b7280', // default gray
+                ],
                 'text-halo-width': 2,
               },
             });
@@ -297,14 +354,23 @@ export function SpeedTrapLayer({
           });
         }
 
-        // Outer glow/pulse effect
+        // Outer glow/pulse effect (color-coded by detection method)
         if (!map.getLayer(PULSE_LAYER_ID)) {
           map.addLayer({
             id: PULSE_LAYER_ID,
             type: 'circle',
             source: SOURCE_ID,
             paint: {
-              'circle-color': '#dc2626',
+              'circle-color': [
+                'match',
+                ['get', 'primaryMethod'],
+                'radar', '#3b82f6',
+                'laser', '#dc2626',
+                'vascar', '#eab308',
+                'patrol', '#22c55e',
+                'automated', '#8b5cf6',
+                '#6b7280', // default gray
+              ],
               'circle-radius': [
                 'interpolate',
                 ['linear'],
@@ -319,14 +385,23 @@ export function SpeedTrapLayer({
           });
         }
 
-        // Main marker - distinctive red circle with thick white border
+        // Main marker - distinctive circle with thick white border (color-coded by detection method)
         if (!map.getLayer(LAYER_ID)) {
           map.addLayer({
             id: LAYER_ID,
             type: 'circle',
             source: SOURCE_ID,
             paint: {
-              'circle-color': '#dc2626',
+              'circle-color': [
+                'match',
+                ['get', 'primaryMethod'],
+                'radar', '#3b82f6',
+                'laser', '#dc2626',
+                'vascar', '#eab308',
+                'patrol', '#22c55e',
+                'automated', '#8b5cf6',
+                '#6b7280', // default gray
+              ],
               'circle-radius': [
                 'interpolate',
                 ['linear'],
@@ -387,7 +462,7 @@ export function SpeedTrapLayer({
           });
         }
 
-        // Text label showing stop count
+        // Text label showing stop count (color-coded by detection method)
         if (!map.getLayer(LABEL_LAYER_ID)) {
           map.addLayer({
             id: LABEL_LAYER_ID,
@@ -410,7 +485,16 @@ export function SpeedTrapLayer({
             },
             paint: {
               'text-color': '#fff',
-              'text-halo-color': '#dc2626',
+              'text-halo-color': [
+                'match',
+                ['get', 'primaryMethod'],
+                'RADAR', '#3b82f6',
+                'LASER', '#dc2626',
+                'VASCAR', '#eab308',
+                'PATROL', '#22c55e',
+                'AUTOMATED', '#8b5cf6',
+                '#6b7280', // default gray
+              ],
               'text-halo-width': 2,
             },
           });

@@ -5,12 +5,13 @@ import prisma from '@/lib/prisma';
  * GET /api/analytics/points
  * Returns police stop points for map visualization
  * Uses server-side pagination and filtering for performance
- * 
+ *
  * Query params:
  * - bounds: "minLng,minLat,maxLng,maxLat" (required for zoom > 10)
  * - zoom: current map zoom level
  * - limit: max points to return (default 5000)
  * - violationType: "Citation" | "Warning" | etc.
+ * - vehicleMake: Filter by vehicle manufacturer (optional)
  * - hasAlcohol: "true" | "false"
  * - hasAccident: "true" | "false"
  * - hourStart: 0-23
@@ -44,6 +45,7 @@ export async function GET(request: NextRequest) {
     const detectionMethod = searchParams.get('detectionMethod');
     const minSpeedOver = searchParams.get('minSpeedOver') ? parseInt(searchParams.get('minSpeedOver')!) : null;
     const speedTrapsOnly = searchParams.get('speedTrapsOnly') === 'true';
+    const vehicleMake = searchParams.get('vehicleMake');
 
     // Build WHERE conditions
     const conditions: string[] = [];
@@ -118,6 +120,12 @@ export async function GET(request: NextRequest) {
     if (minSpeedOver !== null) {
       conditions.push(`speed_over >= $${paramIndex++}`);
       params.push(minSpeedOver);
+    }
+
+    // Vehicle make filter
+    if (vehicleMake && vehicleMake !== 'all') {
+      conditions.push(`vehicle_make = $${paramIndex++}`);
+      params.push(vehicleMake);
     }
 
     // Speed trap detection - stationary detection methods only

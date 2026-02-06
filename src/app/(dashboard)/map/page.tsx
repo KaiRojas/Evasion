@@ -7,10 +7,10 @@ import { PredictionPanel } from '@/components/analytics';
 import { useGeolocation } from '@/hooks';
 import { useLocationStore } from '@/stores';
 import type { LiveUserPin, PoliceAlert } from '@/types';
-import { 
-  Navigation, 
-  Users, 
-  AlertTriangle, 
+import {
+  Navigation,
+  Users,
+  AlertTriangle,
   Wifi,
   WifiOff,
   Plus,

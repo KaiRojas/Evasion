@@ -7,3 +7,4 @@ export { Comment, type IComment } from './Comment';
 export { Reaction, type IReaction, type ReactionType } from './Reaction';
 export { Follow, type IFollow, type FollowTarget } from './Follow';
 export { Notification, type INotification, type NotificationType } from './Notification';
+export { default as Event, type IEvent, type IEventAttendee } from './Event';

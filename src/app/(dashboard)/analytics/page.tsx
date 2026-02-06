@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { MapProvider, BaseMap, HeatmapLayer, PoliceStopsLayer, SpeedTrapLayer, MapFilterPanel, type MapFilters } from '@/components/map';
-import { StatsCard, TimeChart, TopList, SpeedAnalytics } from '@/components/analytics';
+import { AreaSelectionTool } from '@/components/map/AreaSelectionTool';
+import { StatsCard, TimeChart, TopList, SpeedAnalytics, DrillDownPanel } from '@/components/analytics';
 import { Button, Card, CardContent } from '@/components/ui';
 import {
   Activity,
@@ -17,6 +18,7 @@ import {
   CircleDot,
   Target,
   X,
+  Focus,
 } from 'lucide-react';
 
 interface StatsData {
@@ -69,6 +71,13 @@ export default function AnalyticsPage() {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedStop, setSelectedStop] = useState<Record<string, unknown> | null>(null);
   const [selectedTrap, setSelectedTrap] = useState<Record<string, unknown> | null>(null);
+
+  // Area selection state
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedBounds, setSelectedBounds] = useState<[number, number, number, number] | null>(null);
+  const [drillDownData, setDrillDownData] = useState<any | null>(null);
+  const [isLoadingDrillDown, setIsLoadingDrillDown] = useState(false);
+  const [drillDownError, setDrillDownError] = useState<string | null>(null);
   
   // Map filters for points layer
   const [mapFilters, setMapFilters] = useState<MapFilters>({
@@ -82,6 +91,7 @@ export default function AnalyticsPage() {
     detectionMethod: null,
     minSpeedOver: null,
     speedTrapsOnly: null,
+    vehicleMake: null,
     dayOfWeek: null,
   });
   
@@ -158,7 +168,59 @@ export default function AnalyticsPage() {
   useEffect(() => {
     fetchHeatmapData();
   }, [fetchHeatmapData]);
-  
+
+  // Fetch drill-down data when area is selected
+  useEffect(() => {
+    if (!selectedBounds) {
+      setDrillDownData(null);
+      setDrillDownError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    setIsLoadingDrillDown(true);
+    setDrillDownError(null); // Clear previous errors
+
+    // Build query params including current map filters
+    const params = new URLSearchParams({
+      bounds: selectedBounds.join(','),
+    });
+
+    // Apply map filters to drill-down query
+    if (mapFilters.year) params.set('year', mapFilters.year.toString());
+    if (mapFilters.speedOnly) params.set('speedOnly', 'true');
+    if (mapFilters.detectionMethod) params.set('detectionMethod', mapFilters.detectionMethod);
+    if (mapFilters.hasAlcohol !== null) params.set('hasAlcohol', mapFilters.hasAlcohol.toString());
+    if (mapFilters.hasAccident !== null) params.set('hasAccident', mapFilters.hasAccident.toString());
+    if (mapFilters.minSpeedOver !== null) params.set('minSpeedOver', mapFilters.minSpeedOver.toString());
+    if (mapFilters.vehicleMake) params.set('vehicleMake', mapFilters.vehicleMake);
+
+    fetch(`/api/analytics/area-drilldown?${params}`, { signal: controller.signal })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setDrillDownData(data.data);
+          setDrillDownError(null);
+        } else {
+          // Show error to user
+          setDrillDownError(data.error || 'Failed to load area analytics');
+          setDrillDownData(null);
+          console.error('API returned error:', data.error || 'Unknown error');
+        }
+        setIsLoadingDrillDown(false);
+      })
+      .catch(err => {
+        if (err.name !== 'AbortError') {
+          setDrillDownError('Failed to fetch area analytics. Please try again.');
+          setDrillDownData(null);
+          console.error('Failed to fetch drill-down data:', err);
+          setIsLoadingDrillDown(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [selectedBounds, mapFilters]);
+
   const formatDateRange = (start: string, end: string) => {
     if (!start || !end) return 'N/A';
     const startDate = new Date(start);
@@ -298,6 +360,23 @@ export default function AnalyticsPage() {
               <Target size={16} className="mr-1" />
               {showSpeedTraps ? 'Speed Traps' : 'Speed Traps'}
             </Button>
+            <Button
+              variant={selectionMode ? 'primary' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setSelectionMode(!selectionMode);
+                if (selectionMode) {
+                  // Clear selection when exiting mode
+                  setSelectedBounds(null);
+                  setDrillDownData(null);
+                  setDrillDownError(null);
+                }
+              }}
+              title="Click and drag to draw a rectangle on the map to analyze violations in that area"
+            >
+              <Focus size={16} className="mr-1" />
+              {selectionMode ? 'Exit Analysis' : 'Analyze Area'}
+            </Button>
           </div>
         </div>
         
@@ -337,6 +416,18 @@ export default function AnalyticsPage() {
                   setSelectedStop(null); // Close other popup
                 }}
               />
+
+              {/* Area selection tool */}
+              {selectionMode && (
+                <AreaSelectionTool
+                  onAreaSelected={(bounds) => {
+                    setSelectedBounds(bounds);
+                    setSelectedStop(null); // Close other popups
+                    setSelectedTrap(null);
+                  }}
+                  onClearSelection={() => setSelectedBounds(null)}
+                />
+              )}
             </BaseMap>
           </MapProvider>
           
@@ -352,13 +443,23 @@ export default function AnalyticsPage() {
             <div className="absolute bottom-4 left-4 right-4 max-w-md bg-zinc-900/95 backdrop-blur-sm border border-zinc-800 rounded-xl p-4 shadow-xl">
               <div className="flex items-start justify-between mb-2">
                 <h4 className="font-semibold text-white">Traffic Stop Details</h4>
-                <button 
+                <button
                   onClick={() => setSelectedStop(null)}
                   className="text-zinc-400 hover:text-white"
                 >
                   <X size={16} />
                 </button>
               </div>
+
+              {/* Description */}
+              {selectedStop.description && (
+                <div className="mb-3 pb-3 border-b border-zinc-700">
+                  <p className="text-sm text-zinc-300 leading-relaxed">
+                    {String(selectedStop.description)}
+                  </p>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <span className="text-zinc-400">Type:</span>
@@ -461,6 +562,30 @@ export default function AnalyticsPage() {
             </div>
           )}
           
+          {/* Error Message */}
+          {drillDownError && (
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 max-w-md w-full mx-4">
+              <div className="bg-red-900/95 backdrop-blur-sm border border-red-700 rounded-xl p-4 shadow-2xl">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle size={24} className="text-red-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-white mb-1">Area Analysis Error</h4>
+                    <p className="text-sm text-red-200 mb-3">{drillDownError}</p>
+                    <button
+                      onClick={() => {
+                        setDrillDownError(null);
+                        setSelectedBounds(null);
+                      }}
+                      className="px-3 py-1.5 bg-red-800 hover:bg-red-700 text-white text-sm rounded-lg transition-colors"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Map Legend */}
           <div className="absolute bottom-4 right-4 bg-zinc-900/90 backdrop-blur-sm border border-zinc-800 rounded-lg p-3 text-xs">
             <p className="text-zinc-400 mb-2 font-medium">Clusters → Individual at zoom 13+</p>
@@ -535,6 +660,21 @@ export default function AnalyticsPage() {
           Historical data may not reflect current enforcement patterns.
         </p>
       </div>
+
+      {/* Drill-down panel */}
+      {drillDownData && (
+        <DrillDownPanel
+          data={drillDownData}
+          isLoading={isLoadingDrillDown}
+          bounds={selectedBounds}
+          onClose={() => {
+            setDrillDownData(null);
+            setSelectedBounds(null);
+            setSelectionMode(false);
+            setDrillDownError(null);
+          }}
+        />
+      )}
     </div>
   );
 }

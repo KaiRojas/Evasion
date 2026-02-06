@@ -21,6 +21,7 @@ interface PoliceStopsLayerProps {
     detectionMethod?: string | null;
     minSpeedOver?: number | null;
     speedTrapsOnly?: boolean | null;
+    vehicleMake?: string | null;
   };
   onStopClick?: (properties: Record<string, unknown>) => void;
 }
@@ -96,6 +97,9 @@ export function PoliceStopsLayer({
       }
       if (filters.minSpeedOver !== null && filters.minSpeedOver !== undefined) {
         params.set('minSpeedOver', filters.minSpeedOver.toString());
+      }
+      if (filters.vehicleMake) {
+        params.set('vehicleMake', filters.vehicleMake);
       }
       if (filters.speedTrapsOnly) {
         params.set('speedTrapsOnly', 'true');

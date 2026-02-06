@@ -32,6 +32,7 @@ export interface MapFilters {
   detectionMethod: string | null; // radar, laser, vascar, patrol
   minSpeedOver: number | null;
   speedTrapsOnly: boolean | null; // Show only likely speed trap locations
+  vehicleMake: string | null;
 }
 
 interface MapFilterPanelProps {
@@ -84,6 +85,20 @@ const SPEED_OVER_OPTIONS = [
   { value: 30, label: '30+ mph over' },
 ];
 
+const VEHICLE_MAKES = [
+  { value: null, label: 'All Makes' },
+  { value: 'TOYOTA', label: 'Toyota' },
+  { value: 'HONDA', label: 'Honda' },
+  { value: 'FORD', label: 'Ford' },
+  { value: 'CHEVROLET', label: 'Chevrolet' },
+  { value: 'BMW', label: 'BMW' },
+  { value: 'MERCEDES-BENZ', label: 'Mercedes-Benz' },
+  { value: 'NISSAN', label: 'Nissan' },
+  { value: 'VOLKSWAGEN', label: 'Volkswagen' },
+  { value: 'HYUNDAI', label: 'Hyundai' },
+  { value: 'SUBARU', label: 'Subaru' },
+];
+
 // Generate years from current year back to 2012 (typical data range)
 const currentYear = new Date().getFullYear();
 const YEARS = [
@@ -112,6 +127,7 @@ export function MapFilterPanel({
     filters.detectionMethod,
     filters.minSpeedOver !== null,
     filters.speedTrapsOnly,
+    filters.vehicleMake,
   ].filter(Boolean).length;
 
   const clearFilters = () => {
@@ -127,6 +143,7 @@ export function MapFilterPanel({
       detectionMethod: null,
       minSpeedOver: null,
       speedTrapsOnly: null,
+      vehicleMake: null,
     });
   };
 
@@ -365,6 +382,25 @@ export function MapFilterPanel({
               {YEARS.map((year) => (
                 <option key={year.label} value={year.value ?? ''}>
                   {year.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Vehicle Make Filter */}
+          <div>
+            <label className="text-xs text-zinc-400 mb-1.5 block flex items-center gap-1">
+              <Car size={12} />
+              Vehicle Make
+            </label>
+            <select
+              value={filters.vehicleMake ?? ''}
+              onChange={(e) => updateFilter('vehicleMake', e.target.value || null)}
+              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              {VEHICLE_MAKES.map((make) => (
+                <option key={make.label} value={make.value ?? ''}>
+                  {make.label}
                 </option>
               ))}
             </select>
