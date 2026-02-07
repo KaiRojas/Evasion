@@ -51,7 +51,7 @@ export function Header({ showBackButton = false, rightContent }: HeaderProps) {
             {/* Glassmorphism Background */}
             <div className="absolute inset-0 bg-[#030205]/95 backdrop-blur-xl border-b border-white/5"></div>
 
-            <div className="relative z-10 flex items-center justify-between px-4 h-16 max-w-md mx-auto">
+            <div className="relative z-10 flex items-center justify-between px-4 h-[52px] max-w-md mx-auto">
                 {/* Left: Glitch Logo Image */}
                 <div className="flex items-center">
                     <Link href="/home" className="flex items-center hover:opacity-90 transition-opacity">

@@ -49,7 +49,7 @@ export function BottomNav() {
     const pathname = usePathname();
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#030205]/95 backdrop-blur-xl border-t border-[rgba(139,92,246,0.08)] px-6 pt-0.5 pb-1">
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#030205]/95 backdrop-blur-xl border-t border-[rgba(139,92,246,0.08)] px-6 pt-2 pb-6 h-[92px]">
             <div className="max-w-md mx-auto flex items-center justify-between relative">
                 {/* Left nav items */}
                 {navItems.slice(0, 2).map((item) => (

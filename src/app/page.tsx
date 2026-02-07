@@ -21,15 +21,12 @@ export default function AuthLandingPage() {
             {/* Content */}
             <div className="relative z-10 flex flex-col min-h-screen w-full max-w-[430px] mx-auto px-8">
                 {/* Logo Section */}
-                <div className="flex flex-col items-center justify-center pt-20">
+                <div className="flex flex-col items-center justify-center pt-24">
                     <img
                         src="/images/evasion-logo.png"
                         alt="EVASION"
-                        className="h-20 w-auto mb-2"
+                        className="h-32 w-auto mb-2"
                     />
-                    <p className="text-[#F5F5F4] text-xs font-medium opacity-70 tracking-[0.3em] uppercase">
-                        Drive the dream
-                    </p>
                 </div>
 
                 {/* Spacer */}

@@ -1,6 +1,7 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Outfit, Inter } from 'next/font/google';
 import './globals.css';
+import { SplashScreen } from '@/components/pwa';
 
 const outfit = Outfit({
   subsets: ['latin'],
@@ -14,11 +15,25 @@ const inter = Inter({
   variable: '--font-inter',
 });
 
+export const viewport: Viewport = {
+  themeColor: '#06040A',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export const metadata: Metadata = {
   title: 'Evasion - Social Navigation for Car Enthusiasts',
   description: 'Connect with fellow automotive enthusiasts. Share routes, join events, and explore the road together.',
   keywords: ['cars', 'automotive', 'social network', 'driving', 'routes', 'car meets', 'enthusiasts'],
   authors: [{ name: 'Evasion' }],
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Evasion',
+  },
   openGraph: {
     title: 'Evasion',
     description: 'Social Navigation for Car Enthusiasts',
@@ -40,6 +55,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-[#06040A] text-[#F5F5F4] antialiased font-[family-name:var(--font-outfit)]">
+        <SplashScreen />
         {children}
       </body>
     </html>
