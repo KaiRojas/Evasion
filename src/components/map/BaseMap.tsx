@@ -1,129 +1,155 @@
-'use client';
+import { useEffect, useState } from 'react';
+import { MapProvider, useMapContext } from './MapProvider';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { MapContainer, TileLayer, ZoomControl, ScaleControl, useMap } from 'react-leaflet';
 
-import { useEffect, useRef, useState } from 'react';
-import mapboxgl from 'mapbox-gl';
-import { useMap } from './MapProvider';
-
-// Set Mapbox token
-mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
+// Fix for default marker icons in Leaflet with Next.js
+const defaultIcon = L.icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+L.Marker.prototype.options.icon = defaultIcon;
 
 interface BaseMapProps {
-  initialCenter?: [number, number]; // [lng, lat]
+  initialCenter?: [number, number];
   initialZoom?: number;
-  className?: string;
   onMove?: (center: { lng: number; lat: number }, zoom: number) => void;
   onClick?: (lng: number, lat: number) => void;
+  className?: string;
   children?: React.ReactNode;
 }
 
-export function BaseMap({
-  initialCenter = [-98.5795, 39.8283], // Center of USA
-  initialZoom = 4,
-  className = '',
+// Controller component to sync our custom MapContext and handle events
+function MapEvents({
   onMove,
   onClick,
-  children,
-}: BaseMapProps) {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const { setMap } = useMap();
-  const [isReady, setIsReady] = useState(false);
+  setMap
+}: {
+  onMove?: (center: { lng: number; lat: number }, zoom: number) => void;
+  onClick?: (lng: number, lat: number) => void;
+  setMap: (map: L.Map | null) => void;
+}) {
+  const map = useMap();
 
   useEffect(() => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/8ecbc98d-1e8e-44c9-8f10-253e23d24891',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'BaseMap.tsx:useEffect',message:'BaseMap effect triggered',data:{hasContainer:!!mapContainer.current,hasMapRef:!!mapRef.current,initialCenter,initialZoom},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A',runId:'post-fix'})}).catch(()=>{});
-    // #endregion
-    if (!mapContainer.current || mapRef.current) return;
+    setMap(map);
+    return () => setMap(null);
+  }, [map, setMap]);
 
-    // Check if token exists
-    if (!mapboxgl.accessToken) {
-      console.warn('Mapbox token not configured. Add NEXT_PUBLIC_MAPBOX_TOKEN to .env.local');
-      return;
-    }
+  useEffect(() => {
+    if (!onMove && !onClick) return;
 
-    const map = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/dark-v11', // Dark theme to match Evasion
-      center: initialCenter,
-      zoom: initialZoom,
-      pitch: 0,
-      bearing: 0,
-      attributionControl: false,
-    });
-
-    // Add navigation controls
-    map.addControl(
-      new mapboxgl.NavigationControl({ showCompass: true }),
-      'top-right'
-    );
-
-    // Add geolocation control
-    map.addControl(
-      new mapboxgl.GeolocateControl({
-        positionOptions: { enableHighAccuracy: true },
-        trackUserLocation: true,
-        showUserHeading: true,
-      }),
-      'top-right'
-    );
-
-    // Add scale
-    map.addControl(
-      new mapboxgl.ScaleControl({ maxWidth: 100 }),
-      'bottom-left'
-    );
-
-    map.on('load', () => {
-      mapRef.current = map;
-      setMap(map);
-      setIsReady(true);
-    });
-
-    map.on('move', () => {
+    const handleMoveEnd = () => {
       if (onMove) {
         const center = map.getCenter();
         onMove({ lng: center.lng, lat: center.lat }, map.getZoom());
       }
-    });
+    };
 
-    map.on('click', (e) => {
+    const handleClick = (e: L.LeafletMouseEvent) => {
       if (onClick) {
-        onClick(e.lngLat.lng, e.lngLat.lat);
+        onClick(e.latlng.lng, e.latlng.lat);
       }
-    });
+    };
+
+    map.on('moveend', handleMoveEnd);
+    map.on('click', handleClick);
 
     return () => {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/8ecbc98d-1e8e-44c9-8f10-253e23d24891',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'BaseMap.tsx:cleanup',message:'BaseMap CLEANUP - destroying map',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A',runId:'post-fix'})}).catch(()=>{});
-      // #endregion
-      setMap(null);
-      map.remove();
-      mapRef.current = null;
+      map.off('moveend', handleMoveEnd);
+      map.off('click', handleClick);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setMap]); // Only depend on setMap - initialCenter/initialZoom are for initial render only
+  }, [map, onMove, onClick]);
+
+  return null;
+}
+
+function BaseMapInner({
+  initialCenter = [-118.2437, 34.0522], // Los Angeles default
+  initialZoom = 12,
+  onMove,
+  onClick,
+  className = 'h-full w-full',
+  children,
+}: BaseMapProps) {
+  const { setMap } = useMapContext();
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    setIsReady(true);
+  }, []);
+
+  if (!isReady) {
+    return (
+      <div className={`bg-zinc-950 ${className}`} style={{ minHeight: '400px' }} />
+    );
+  }
 
   return (
     <div className={`relative ${className}`} style={{ minHeight: '400px' }}>
-      <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
-      {!mapboxgl.accessToken && (
-        <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/90 z-10">
-          <div className="text-center p-6 max-w-md">
-            <div className="w-16 h-16 rounded-full bg-orange-500/20 flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold text-white mb-2">Map Not Configured</h3>
-            <p className="text-zinc-400 text-sm">
-              Add your Mapbox token to <code className="text-orange-400">.env.local</code>:
-              <br />
-              <code className="text-xs">NEXT_PUBLIC_MAPBOX_TOKEN=pk.your_token</code>
-            </p>
-          </div>
-        </div>
-      )}
-      {isReady && children}
+      <MapContainer
+        center={[initialCenter[1], initialCenter[0]]} // [lat, lng]
+        zoom={initialZoom}
+        zoomControl={false}
+        className="absolute inset-0 w-full h-full"
+        scrollWheelZoom={true}
+      >
+        <TileLayer
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          subdomains="abcd"
+          maxZoom={20}
+        />
+
+        <ZoomControl position="topright" />
+        <ScaleControl position="bottomleft" />
+
+        <MapEvents onMove={onMove} onClick={onClick} setMap={setMap as any} />
+
+        {children}
+      </MapContainer>
+
+      {/* Custom dark theme overrides for Leaflet controls */}
+      <style jsx global>{`
+        .leaflet-control-zoom a {
+          background-color: rgba(6, 4, 10, 0.9) !important;
+          color: #F5F5F4 !important;
+          border-color: rgba(139, 92, 246, 0.2) !important;
+        }
+        .leaflet-control-zoom a:hover {
+          background-color: rgba(139, 92, 246, 0.3) !important;
+        }
+        .leaflet-control-scale-line {
+          background-color: rgba(6, 4, 10, 0.8) !important;
+          color: #F5F5F4 !important;
+          border-color: rgba(139, 92, 246, 0.3) !important;
+        }
+        .leaflet-control-attribution {
+          background-color: rgba(6, 4, 10, 0.8) !important;
+          color: #888 !important;
+          font-size: 10px !important;
+        }
+        .leaflet-control-attribution a {
+          color: #8B5CF6 !important;
+        }
+        .leaflet-container {
+          background-color: #06040A !important;
+        }
+      `}</style>
     </div>
+  );
+}
+
+export function BaseMap(props: BaseMapProps) {
+  return (
+    <MapProvider>
+      <BaseMapInner {...props} />
+    </MapProvider>
   );
 }

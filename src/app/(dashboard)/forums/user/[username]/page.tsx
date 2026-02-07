@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  MapPin, 
-  Link as LinkIcon, 
+import {
+  MapPin,
+  Link as LinkIcon,
   Calendar,
   MessageSquare,
   Heart,
@@ -136,7 +136,7 @@ function ThreadRow({ thread }: { thread: Thread }) {
 export default function UserProfilePage() {
   const params = useParams();
   const username = params.username as string;
-  
+
   const [user, setUser] = useState<ForumUser | null>(null);
   const [threads, setThreads] = useState<Thread[]>([]);
   const [loading, setLoading] = useState(true);
@@ -149,10 +149,10 @@ export default function UserProfilePage() {
         // Fetch user by username
         const res = await fetch(`/api/forum/users?search=${username}&limit=1`);
         const data = await res.json();
-        
+
         if (data.success && data.data.length > 0) {
           setUser(data.data[0]);
-          
+
           // Fetch user's threads
           const threadsRes = await fetch(`/api/forum/threads?author=${data.data[0]._id}&limit=10`);
           const threadsData = await threadsRes.json();
@@ -166,7 +166,7 @@ export default function UserProfilePage() {
         setLoading(false);
       }
     }
-    
+
     fetchUser();
   }, [username]);
 
@@ -333,16 +333,16 @@ export default function UserProfilePage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 border-b border-zinc-800">
+        <div className="flex gap-2 border-b border-zinc-800 pb-2 overflow-x-auto scrollbar-hide">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                'px-4 py-3 text-sm font-medium border-b-2 transition-colors',
+                'px-4 py-2 text-sm font-medium rounded-full transition-all whitespace-nowrap',
                 activeTab === tab.id
-                  ? 'border-red-500 text-white'
-                  : 'border-transparent text-zinc-400 hover:text-white'
+                  ? 'bg-[#8B5CF6]/20 text-[#8B5CF6] border border-[#8B5CF6]/20'
+                  : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
               )}
             >
               {tab.label}

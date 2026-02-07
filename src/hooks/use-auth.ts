@@ -14,7 +14,7 @@ import type { Session } from '@supabase/supabase-js';
 
 // DEV MODE: Test credentials for local development
 const DEV_MODE = process.env.NODE_ENV === 'development';
-const SUPABASE_CONFIGURED = process.env.NEXT_PUBLIC_SUPABASE_URL && 
+const SUPABASE_CONFIGURED = process.env.NEXT_PUBLIC_SUPABASE_URL &&
   !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your-') &&
   !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('localhost:54321');
 
@@ -27,6 +27,15 @@ const DEV_USER: AuthUser = {
   isVerified: true,
 };
 const DEV_PASSWORD = 'Test1234';
+
+const GUEST_USER: AuthUser = {
+  id: 'guest-user',
+  email: 'guest@evasion.app',
+  username: 'guest',
+  displayName: 'Guest',
+  avatarUrl: null,
+  isVerified: false,
+};
 
 export function useAuth() {
   const router = useRouter();
@@ -50,7 +59,7 @@ export function useAuth() {
 
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        
+
         if (session?.user) {
           // Fetch user profile from our database
           const { data: profile } = await supabase
@@ -58,7 +67,7 @@ export function useAuth() {
             .select('id, email, username, display_name, avatar_url, is_verified')
             .eq('id', session.user.id)
             .single();
-          
+
           if (profile) {
             setUser({
               id: profile.id,
@@ -97,7 +106,7 @@ export function useAuth() {
             .select('id, email, username, display_name, avatar_url, is_verified')
             .eq('id', session.user.id)
             .single();
-          
+
           if (profile) {
             setUser({
               id: profile.id,
@@ -122,24 +131,24 @@ export function useAuth() {
   // Login function
   const login = useCallback(async (email: string, password: string) => {
     setLoading(true);
-    
+
     // DEV MODE: Allow test login
     if (DEV_MODE && email === DEV_USER.email && password === DEV_PASSWORD) {
       console.log('🔧 DEV MODE: Using test account');
       setUser(DEV_USER);
       return { user: DEV_USER, session: null };
     }
-    
+
     // If Supabase isn't configured, show helpful error
     if (!SUPABASE_CONFIGURED) {
       setLoading(false);
       throw new Error(
-        DEV_MODE 
+        DEV_MODE
           ? 'Use test@evasion.dev / Test1234 for dev login, or configure Supabase in .env.local'
           : 'Authentication service not configured'
       );
     }
-    
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -164,14 +173,14 @@ export function useAuth() {
     }
   ) => {
     setLoading(true);
-    
+
     // DEV MODE: Simulate signup success
     if (DEV_MODE && !process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('supabase')) {
       console.log('🔧 DEV MODE: Simulating signup success');
       setLoading(false);
       return { user: null, session: null };
     }
-    
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -187,6 +196,12 @@ export function useAuth() {
 
     return data;
   }, [supabase, setLoading]);
+
+  // Login as guest
+  const loginAsGuest = useCallback(() => {
+    setUser(GUEST_USER);
+    router.push('/home');
+  }, [setUser, router]);
 
   // Logout function
   const logout = useCallback(async () => {
@@ -222,6 +237,7 @@ export function useAuth() {
     isAuthenticated,
     isLoading,
     login,
+    loginAsGuest,
     signup,
     logout,
     resetPassword,

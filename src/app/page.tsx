@@ -1,207 +1,99 @@
 'use client';
 
 import Link from 'next/link';
-import { Button } from '@/components/ui';
-import { 
-  MapPin, 
-  Users, 
-  Route, 
-  Shield, 
-  Zap,
-  Car
-} from 'lucide-react';
+import { useAuth } from '@/hooks';
 
-export default function HomePage() {
-  return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
-      <header className="relative overflow-hidden">
-        {/* Background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black" />
-        <div className="absolute inset-0 road-pattern opacity-30" />
-        
-        {/* Navigation */}
-        <nav className="relative z-10 flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-lg bg-orange-500 flex items-center justify-center">
-              <Car className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-white">Evasion</span>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <Link href="/login">
-              <Button variant="ghost">Log In</Button>
-            </Link>
-            <Link href="/signup">
-              <Button variant="primary">Get Started</Button>
-            </Link>
-          </div>
-        </nav>
+export default function AuthLandingPage() {
+    const { loginAsGuest } = useAuth();
 
-        {/* Hero Content */}
-        <div className="relative z-10 max-w-7xl mx-auto px-6 py-24 md:py-32">
-          <div className="max-w-3xl">
-            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
-              Drive Together.
-              <span className="text-orange-500"> Explore More.</span>
-            </h1>
-            <p className="text-xl text-zinc-400 mb-8 max-w-2xl">
-              The social navigation network for automotive enthusiasts. 
-              Connect with drivers, discover epic routes, join community rides, 
-              and stay informed on the road.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link href="/signup">
-                <Button size="lg" className="w-full sm:w-auto">
-                  Join the Community
-                </Button>
-              </Link>
-              <Link href="#features">
-                <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                  Learn More
-                </Button>
-              </Link>
+    return (
+        <div className="relative min-h-screen bg-black text-white overflow-hidden">
+            {/* Background Image with Gradient Overlay */}
+            <div className="fixed inset-0 z-0">
+                <img
+                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4TvIz858XyzdwWD8JzwHE7P1rAG-ko8VQGdx_9KOjCZRUDn7zPX7T1-r2d-UT4z272JkI17GM7_zYMnDL2dFA-Cs_lpJ2-oGIMLZ-GOzmClEkC6KTrj0CJFBzO4Z5kscRNWSrKgyWdP6ECpc-C9SWs4kG35XCQhV9zfio5TZrB4JWEcYdOXJs_z1OZvC8OvVsoc215Dd7YQrIdchEtVxM07dbhUaIbNFjesrLpf4jqgGYpYiCI9pTg-UCavIemPzu1vbRNnTvfFw"
+                    alt="Sports car environment"
+                    className="w-full h-full object-cover object-center"
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-black via-black/40 to-black/80" />
             </div>
-          </div>
+
+            {/* Content */}
+            <div className="relative z-10 flex flex-col min-h-screen w-full max-w-[430px] mx-auto px-8">
+                {/* Logo Section */}
+                <div className="flex flex-col items-center justify-center pt-20">
+                    <img
+                        src="/images/evasion-logo.png"
+                        alt="EVASION"
+                        className="h-20 w-auto mb-2"
+                    />
+                    <p className="text-[#F5F5F4] text-xs font-medium opacity-70 tracking-[0.3em] uppercase">
+                        Drive the dream
+                    </p>
+                </div>
+
+                {/* Spacer */}
+                <div className="flex-1" />
+
+                {/* Auth Buttons */}
+                <div className="flex flex-col gap-3.5 mb-24">
+                    {/* Email Sign Up */}
+                    <Link
+                        href="/signup"
+                        className="flex w-full items-center justify-center rounded-full h-12 text-xs font-bold tracking-[0.1em] uppercase transition-all active:scale-[0.98] bg-[#8B5CF6] text-white hover:brightness-110 shadow-lg shadow-[#8B5CF6]/20"
+                    >
+                        Sign up with email
+                    </Link>
+
+                    {/* Apple Sign In */}
+                    <button className="flex w-full items-center justify-center rounded-full h-12 text-xs font-bold tracking-[0.1em] uppercase transition-all active:scale-[0.98] border border-white/20 bg-black/40 backdrop-blur-md text-white hover:bg-white/10">
+                        <div className="w-5 h-5 mr-3 flex items-center justify-center">
+                            <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24">
+                                <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+                            </svg>
+                        </div>
+                        Sign in with Apple
+                    </button>
+
+                    {/* Google Sign In */}
+                    <button className="flex w-full items-center justify-center rounded-full h-12 text-xs font-bold tracking-[0.1em] uppercase transition-all active:scale-[0.98] border border-white/20 bg-black/40 backdrop-blur-md text-white hover:bg-white/10">
+                        <div className="w-5 h-5 mr-3 flex items-center justify-center">
+                            <svg className="w-4 h-4" viewBox="0 0 24 24">
+                                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
+                                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                            </svg>
+                        </div>
+                        Sign in with Google
+                    </button>
+                    {/* Login Link */}
+                    <div className="flex flex-col items-center justify-center mt-6">
+                        <p className="text-[#A8A8A8] text-[10px] font-medium tracking-[0.2em] uppercase">
+                            Already have an account?{' '}
+                            <Link
+                                href="/login"
+                                className="text-white font-bold hover:text-[#8B5CF6] transition-colors ml-1 border-b border-white/20 pb-0.5"
+                            >
+                                Log in
+                            </Link>
+                        </p>
+                    </div>
+                </div>
+
+                {/* Spacer */}
+                <div className="flex-1" />
+
+                {/* Continue as Guest */}
+                <div className="flex flex-col items-center justify-center pb-10">
+                    <button
+                        onClick={loginAsGuest}
+                        className="text-[#A8A8A8] text-[10px] font-medium tracking-[0.2em] uppercase hover:text-white transition-colors"
+                    >
+                        Continue as guest
+                    </button>
+                </div>
+            </div>
         </div>
-
-        {/* Decorative car silhouette */}
-        <div className="absolute bottom-0 right-0 w-1/2 h-64 opacity-5">
-          <svg viewBox="0 0 640 480" fill="currentColor" className="w-full h-full">
-            <path d="M544 224l-128-64c-35.35 0-64 28.65-64 64v96H96c-53.02 0-96-42.98-96-96v-32c0-53.02 42.98-96 96-96h224l64-64h160c53.02 0 96 42.98 96 96v96c0 17.67-14.33 32-32 32h-64z"/>
-          </svg>
-        </div>
-      </header>
-
-      {/* Features Section */}
-      <section id="features" className="py-24 px-6 bg-zinc-950">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-white mb-4">
-              Everything You Need on the Road
-            </h2>
-            <p className="text-zinc-400 max-w-2xl mx-auto">
-              From real-time tracking to community events, Evasion has all the features 
-              to enhance your driving experience.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Feature 1 */}
-            <div className="bg-zinc-900 rounded-2xl p-8 border border-zinc-800 hover:border-orange-500/50 transition-colors">
-              <div className="w-12 h-12 rounded-lg bg-orange-500/20 flex items-center justify-center mb-4">
-                <MapPin className="w-6 h-6 text-orange-500" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Live Location</h3>
-              <p className="text-zinc-400">
-                See friends on the map in real-time. Know who&apos;s driving nearby and connect instantly.
-              </p>
-            </div>
-
-            {/* Feature 2 */}
-            <div className="bg-zinc-900 rounded-2xl p-8 border border-zinc-800 hover:border-orange-500/50 transition-colors">
-              <div className="w-12 h-12 rounded-lg bg-orange-500/20 flex items-center justify-center mb-4">
-                <Route className="w-6 h-6 text-orange-500" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Route Discovery</h3>
-              <p className="text-zinc-400">
-                Find the best driving roads shared by the community. From canyon runs to scenic highways.
-              </p>
-            </div>
-
-            {/* Feature 3 */}
-            <div className="bg-zinc-900 rounded-2xl p-8 border border-zinc-800 hover:border-orange-500/50 transition-colors">
-              <div className="w-12 h-12 rounded-lg bg-orange-500/20 flex items-center justify-center mb-4">
-                <Users className="w-6 h-6 text-orange-500" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Community Events</h3>
-              <p className="text-zinc-400">
-                Join car meets, group drives, and track days. Never miss an event in your area.
-              </p>
-            </div>
-
-            {/* Feature 4 */}
-            <div className="bg-zinc-900 rounded-2xl p-8 border border-zinc-800 hover:border-orange-500/50 transition-colors">
-              <div className="w-12 h-12 rounded-lg bg-orange-500/20 flex items-center justify-center mb-4">
-                <Shield className="w-6 h-6 text-orange-500" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Road Alerts</h3>
-              <p className="text-zinc-400">
-                Real-time alerts for police activity, road hazards, and traffic conditions from the community.
-              </p>
-            </div>
-
-            {/* Feature 5 */}
-            <div className="bg-zinc-900 rounded-2xl p-8 border border-zinc-800 hover:border-orange-500/50 transition-colors">
-              <div className="w-12 h-12 rounded-lg bg-orange-500/20 flex items-center justify-center mb-4">
-                <Car className="w-6 h-6 text-orange-500" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Your Garage</h3>
-              <p className="text-zinc-400">
-                Showcase your vehicles with photos and specs. Track mods and share your build journey.
-              </p>
-            </div>
-
-            {/* Feature 6 */}
-            <div className="bg-zinc-900 rounded-2xl p-8 border border-zinc-800 hover:border-orange-500/50 transition-colors">
-              <div className="w-12 h-12 rounded-lg bg-orange-500/20 flex items-center justify-center mb-4">
-                <Zap className="w-6 h-6 text-orange-500" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Car Spotting</h3>
-              <p className="text-zinc-400">
-                Spot and share interesting cars you see. Build your spotting collection and earn recognition.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-24 px-6 bg-gradient-to-br from-orange-600 to-orange-700">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-bold text-white mb-4">
-            Ready to Hit the Road?
-          </h2>
-          <p className="text-orange-100 mb-8 text-lg">
-            Join thousands of car enthusiasts already using Evasion. 
-            Must be 16 or older to create an account.
-          </p>
-          <Link href="/signup">
-            <Button 
-              size="lg" 
-              className="bg-white text-orange-600 hover:bg-zinc-100"
-            >
-              Create Your Account
-            </Button>
-          </Link>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-zinc-950 border-t border-zinc-800 py-12 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center">
-                <Car className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold text-white">Evasion</span>
-            </div>
-            
-            <div className="flex gap-8 text-zinc-400 text-sm">
-              <Link href="/about" className="hover:text-white transition-colors">About</Link>
-              <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
-              <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
-              <Link href="/contact" className="hover:text-white transition-colors">Contact</Link>
-            </div>
-            
-            <p className="text-zinc-500 text-sm">
-              © 2026 Evasion. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
+    );
 }

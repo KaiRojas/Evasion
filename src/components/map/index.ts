@@ -8,6 +8,5 @@ export { FriendMarker } from './FriendMarker';
 export { PoliceMarker } from './PoliceMarker';
 export { RouteLayer } from './RouteLayer';
 export { HeatmapLayer } from './HeatmapLayer';
-export { PoliceStopsLayer } from './PoliceStopsLayer';
-export { SpeedTrapLayer } from './SpeedTrapLayer';
+export { LeafletPoliceStops } from './LeafletPoliceStops';
 export { MapFilterPanel, type MapFilters } from './MapFilterPanel';

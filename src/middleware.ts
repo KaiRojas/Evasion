@@ -26,39 +26,45 @@ const authRoutes = [
 ];
 
 export async function middleware(request: NextRequest) {
+  // DEVELOPMENT MODE BYPASS - Skip auth checks for UI development
+  // Set NEXT_PUBLIC_DEV_MODE=true in .env.local to enable
+  if (process.env.NEXT_PUBLIC_DEV_MODE === 'true') {
+    return NextResponse.next();
+  }
+
   // Update Supabase session
   const response = await updateSession(request);
-  
+
   const { pathname } = request.nextUrl;
-  
+
   // Check if accessing protected route
-  const isProtectedRoute = protectedRoutes.some(route => 
+  const isProtectedRoute = protectedRoutes.some(route =>
     pathname.startsWith(route)
   );
-  
+
   // Check if accessing auth route
-  const isAuthRoute = authRoutes.some(route => 
+  const isAuthRoute = authRoutes.some(route =>
     pathname.startsWith(route)
   );
-  
+
   // Get session from cookie (simplified check)
   // Also check for dev auth cookie in development
-  const hasSession = request.cookies.has('sb-access-token') || 
-                     request.cookies.get('sb-localhost-auth-token') ||
-                     request.cookies.has('evasion-dev-auth');
-  
+  const hasSession = request.cookies.has('sb-access-token') ||
+    request.cookies.get('sb-localhost-auth-token') ||
+    request.cookies.has('evasion-dev-auth');
+
   // Redirect to login if accessing protected route without session
   if (isProtectedRoute && !hasSession) {
     const redirectUrl = new URL('/login', request.url);
     redirectUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(redirectUrl);
   }
-  
+
   // Redirect to dashboard if accessing auth route with session
   if (isAuthRoute && hasSession) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
-  
+
   return response;
 }
 

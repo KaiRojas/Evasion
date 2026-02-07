@@ -13,13 +13,13 @@ interface StatsCardProps {
     label: string;
     positive?: boolean;
   };
-  color?: 'default' | 'orange' | 'red' | 'green' | 'blue' | 'purple';
+  color?: 'default' | 'violet' | 'red' | 'green' | 'blue' | 'purple';
   className?: string;
 }
 
 const colorStyles = {
   default: 'bg-zinc-900 border-zinc-800',
-  orange: 'bg-orange-500/10 border-orange-500/20',
+  violet: 'bg-violet-500/10 border-violet-500/20',
   red: 'bg-red-500/10 border-red-500/20',
   green: 'bg-green-500/10 border-green-500/20',
   blue: 'bg-blue-500/10 border-blue-500/20',
@@ -28,7 +28,7 @@ const colorStyles = {
 
 const iconColors = {
   default: 'bg-zinc-800 text-zinc-400',
-  orange: 'bg-orange-500/20 text-orange-500',
+  violet: 'bg-violet-500/20 text-violet-500',
   red: 'bg-red-500/20 text-red-500',
   green: 'bg-green-500/20 text-green-500',
   blue: 'bg-blue-500/20 text-blue-500',
@@ -47,15 +47,15 @@ export function StatsCard({
   return (
     <div
       className={cn(
-        'rounded-xl border p-5 transition-all hover:border-zinc-700',
+        'rounded-xl border p-3 transition-all hover:border-zinc-700',
         colorStyles[color],
         className
       )}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm text-zinc-400 mb-1">{title}</p>
-          <p className="text-3xl font-bold text-white">
+          <p className="text-[10px] uppercase font-bold tracking-wider text-zinc-500 mb-0.5">{title}</p>
+          <p className="text-2xl font-black text-white">
             {typeof value === 'number' ? value.toLocaleString() : value}
           </p>
           {subtitle && (
@@ -78,7 +78,7 @@ export function StatsCard({
         {icon && (
           <div
             className={cn(
-              'w-12 h-12 rounded-lg flex items-center justify-center',
+              'w-10 h-10 rounded-lg flex items-center justify-center',
               iconColors[color]
             )}
           >

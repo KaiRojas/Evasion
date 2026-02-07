@@ -3,15 +3,13 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Button, Input, Card, CardContent } from '@/components/ui';
 import { useAuth } from '@/hooks';
 import { signupSchema, type SignupInput } from '@/lib/validations';
-import { Eye, EyeOff, AlertTriangle } from 'lucide-react';
 
 export default function SignupPage() {
   const router = useRouter();
   const { signup } = useAuth();
-  
+
   const [formData, setFormData] = useState<SignupInput>({
     email: '',
     password: '',
@@ -33,7 +31,6 @@ export default function SignupPage() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
-    // Clear error when user starts typing
     if (errors[name as keyof SignupInput]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
@@ -45,7 +42,6 @@ export default function SignupPage() {
     setIsLoading(true);
     setServerError('');
 
-    // Validate form
     const result = signupSchema.safeParse(formData);
     if (!result.success) {
       const fieldErrors: Partial<Record<keyof SignupInput, string>> = {};
@@ -69,8 +65,8 @@ export default function SignupPage() {
       setSuccess(true);
     } catch (error) {
       setServerError(
-        error instanceof Error 
-          ? error.message 
+        error instanceof Error
+          ? error.message
           : 'Something went wrong. Please try again.'
       );
     } finally {
@@ -80,180 +76,188 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <>
-        <div className="mb-8 text-center">
-          <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h2 className="text-3xl font-bold text-white mb-2">Check your email</h2>
-          <p className="text-zinc-400">
-            We&apos;ve sent a verification link to <strong className="text-white">{formData.email}</strong>
-          </p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] px-8">
+        <div className="w-16 h-16 rounded-full bg-[#22C55E]/20 flex items-center justify-center mb-4">
+          <span className="material-symbols-outlined text-[#22C55E] text-3xl">check</span>
         </div>
-
-        <Card variant="glass">
-          <CardContent className="text-center">
-            <p className="text-zinc-400 mb-4">
-              Click the link in your email to verify your account and start exploring Evasion.
-            </p>
-            <Link href="/login">
-              <Button variant="outline" className="w-full">
-                Back to Login
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </>
+        <h2 className="text-2xl font-bold text-white mb-2 text-center">Check your email</h2>
+        <p className="text-[#A8A8A8] text-center text-sm mb-6">
+          We&apos;ve sent a verification link to <strong className="text-white">{formData.email}</strong>
+        </p>
+        <Link
+          href="/login"
+          className="w-full max-w-[280px] flex items-center justify-center rounded-full h-[44px] text-[12px] font-bold tracking-[0.1em] uppercase transition-all active:scale-[0.98] border border-white/20 bg-white/5 text-white hover:bg-white/10"
+        >
+          Back to Login
+        </Link>
+      </div>
     );
   }
 
   return (
-    <>
-      <div className="mb-6">
-        <h2 className="text-3xl font-bold text-white mb-2">Create your account</h2>
-        <p className="text-zinc-400">
-          Join the automotive community
-        </p>
+    <div className="flex flex-col min-h-screen">
+      {/* Page Title */}
+      <div className="flex flex-col items-center pb-6">
+        <h2 className="text-[#F5F5F4] text-2xl font-bold text-center">Create your account</h2>
+        <p className="text-gray-400 text-sm text-center mt-1">Join the automotive community</p>
       </div>
 
       {/* Age Warning */}
-      <div className="flex items-start gap-3 p-4 rounded-lg bg-orange-500/10 border border-orange-500/20 mb-6">
-        <AlertTriangle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
-        <p className="text-sm text-orange-200">
-          You must be <strong>16 years or older</strong> to create an Evasion account. 
-          By signing up, you confirm you meet this age requirement.
+      <div className="flex items-start gap-3 p-4 rounded-xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 mb-6">
+        <span className="material-symbols-outlined text-[#8B5CF6] text-lg">warning</span>
+        <p className="text-sm text-purple-200">
+          You must be <strong>16 years or older</strong> to create an Evasion account.
         </p>
       </div>
 
-      <Card variant="glass">
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {serverError && (
-              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-                {serverError}
-              </div>
-            )}
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4 flex-grow">
+        {serverError && (
+          <div className="p-3 rounded-xl bg-[#EF4444]/10 border border-[#EF4444]/20 text-[#EF4444] text-sm">
+            {serverError}
+          </div>
+        )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Username"
-                name="username"
-                placeholder="gearhead42"
-                value={formData.username}
-                onChange={handleChange}
-                error={errors.username}
-                autoComplete="username"
-              />
-
-              <Input
-                label="Display Name"
-                name="displayName"
-                placeholder="John Doe"
-                value={formData.displayName}
-                onChange={handleChange}
-                error={errors.displayName}
-                autoComplete="name"
-              />
-            </div>
-
-            <Input
-              label="Email"
-              name="email"
-              type="email"
-              placeholder="you@example.com"
-              value={formData.email}
+        {/* Username & Display Name */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-2">
+            <label className="text-[#F5F5F4] text-sm font-medium">Username</label>
+            <input
+              type="text"
+              name="username"
+              placeholder="gearhead42"
+              value={formData.username}
               onChange={handleChange}
-              error={errors.email}
-              autoComplete="email"
+              className="w-full h-12 px-4 bg-white/5 border border-white/10 rounded-xl text-[#F5F5F4] placeholder:text-gray-500 focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] transition-all text-sm"
             />
+            {errors.username && <span className="text-[#EF4444] text-xs">{errors.username}</span>}
+          </div>
 
-            <Input
-              label="Date of Birth"
-              name="dateOfBirth"
-              type="date"
-              value={formData.dateOfBirth}
+          <div className="flex flex-col gap-2">
+            <label className="text-[#F5F5F4] text-sm font-medium">Display Name</label>
+            <input
+              type="text"
+              name="displayName"
+              placeholder="John Doe"
+              value={formData.displayName}
               onChange={handleChange}
-              error={errors.dateOfBirth}
-              max={new Date(new Date().setFullYear(new Date().getFullYear() - 16)).toISOString().split('T')[0]}
+              className="w-full h-12 px-4 bg-white/5 border border-white/10 rounded-xl text-[#F5F5F4] placeholder:text-gray-500 focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] transition-all text-sm"
             />
+            {errors.displayName && <span className="text-[#EF4444] text-xs">{errors.displayName}</span>}
+          </div>
+        </div>
 
-            <div className="relative">
-              <Input
-                label="Password"
-                name="password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Min. 8 characters"
-                value={formData.password}
-                onChange={handleChange}
-                error={errors.password}
-                autoComplete="new-password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-9 text-zinc-400 hover:text-white transition-colors"
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
+        {/* Email */}
+        <div className="flex flex-col gap-2">
+          <label className="text-[#F5F5F4] text-sm font-medium">Email</label>
+          <input
+            type="email"
+            name="email"
+            placeholder="you@example.com"
+            value={formData.email}
+            onChange={handleChange}
+            className="w-full h-12 px-4 bg-white/5 border border-white/10 rounded-xl text-[#F5F5F4] placeholder:text-gray-500 focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] transition-all"
+          />
+          {errors.email && <span className="text-[#EF4444] text-xs">{errors.email}</span>}
+        </div>
 
-            <Input
-              label="Confirm Password"
-              name="confirmPassword"
+        {/* Date of Birth */}
+        <div className="flex flex-col gap-2">
+          <label className="text-[#F5F5F4] text-sm font-medium">Date of Birth</label>
+          <input
+            type="date"
+            name="dateOfBirth"
+            value={formData.dateOfBirth}
+            onChange={handleChange}
+            max={new Date(new Date().setFullYear(new Date().getFullYear() - 16)).toISOString().split('T')[0]}
+            className="w-full h-12 px-4 bg-white/5 border border-white/10 rounded-xl text-[#F5F5F4] focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] transition-all [color-scheme:dark]"
+          />
+          {errors.dateOfBirth && <span className="text-[#EF4444] text-xs">{errors.dateOfBirth}</span>}
+        </div>
+
+        {/* Password */}
+        <div className="flex flex-col gap-2">
+          <label className="text-[#F5F5F4] text-sm font-medium">Password</label>
+          <div className="relative">
+            <input
               type={showPassword ? 'text' : 'password'}
-              placeholder="Confirm your password"
-              value={formData.confirmPassword}
+              name="password"
+              placeholder="Min. 8 characters"
+              value={formData.password}
               onChange={handleChange}
-              error={errors.confirmPassword}
-              autoComplete="new-password"
+              className="w-full h-12 px-4 pr-12 bg-white/5 border border-white/10 rounded-xl text-[#F5F5F4] placeholder:text-gray-500 focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] transition-all"
             />
-
-            <label className="flex items-start gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                name="agreeToTerms"
-                checked={formData.agreeToTerms}
-                onChange={handleChange}
-                className="w-4 h-4 mt-1 rounded border-zinc-600 bg-zinc-800 text-orange-500 focus:ring-orange-500"
-              />
-              <span className="text-sm text-zinc-400">
-                I agree to the{' '}
-                <Link href="/terms" className="text-orange-500 hover:text-orange-400">
-                  Terms of Service
-                </Link>{' '}
-                and{' '}
-                <Link href="/privacy" className="text-orange-500 hover:text-orange-400">
-                  Privacy Policy
-                </Link>
-              </span>
-            </label>
-            {errors.agreeToTerms && (
-              <p className="text-sm text-red-500 -mt-2">{errors.agreeToTerms}</p>
-            )}
-
-            <Button 
-              type="submit" 
-              className="w-full" 
-              size="lg"
-              isLoading={isLoading}
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
             >
-              Create Account
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+              <span className="material-symbols-outlined text-xl">
+                {showPassword ? 'visibility_off' : 'visibility'}
+              </span>
+            </button>
+          </div>
+          {errors.password && <span className="text-[#EF4444] text-xs">{errors.password}</span>}
+        </div>
 
-      <p className="text-center mt-6 text-zinc-400">
+        {/* Confirm Password */}
+        <div className="flex flex-col gap-2">
+          <label className="text-[#F5F5F4] text-sm font-medium">Confirm Password</label>
+          <input
+            type={showPassword ? 'text' : 'password'}
+            name="confirmPassword"
+            placeholder="Confirm your password"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            className="w-full h-12 px-4 bg-white/5 border border-white/10 rounded-xl text-[#F5F5F4] placeholder:text-gray-500 focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] transition-all"
+          />
+          {errors.confirmPassword && <span className="text-[#EF4444] text-xs">{errors.confirmPassword}</span>}
+        </div>
+
+        {/* Terms */}
+        <label className="flex items-start gap-3 cursor-pointer mt-2">
+          <input
+            type="checkbox"
+            name="agreeToTerms"
+            checked={formData.agreeToTerms}
+            onChange={handleChange}
+            className="w-4 h-4 mt-0.5 rounded border-gray-600 bg-white/5 text-[#8B5CF6] focus:ring-[#8B5CF6]"
+          />
+          <span className="text-sm text-gray-400">
+            I agree to the{' '}
+            <Link href="/terms" className="text-[#8B5CF6] hover:text-purple-400">Terms of Service</Link>
+            {' '}and{' '}
+            <Link href="/privacy" className="text-[#8B5CF6] hover:text-purple-400">Privacy Policy</Link>
+          </span>
+        </label>
+        {errors.agreeToTerms && (
+          <p className="text-sm text-[#EF4444] -mt-2">{errors.agreeToTerms}</p>
+        )}
+
+        {/* Submit */}
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="w-full h-12 mt-4 bg-[#8B5CF6] text-white rounded-full font-bold uppercase tracking-widest text-sm shadow-[0_0_20px_rgba(139,92,246,0.4)] hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {isLoading ? (
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            'Create Account'
+          )}
+        </button>
+      </form>
+
+      {/* Login link */}
+      <p className="text-center mt-6 text-gray-400 pb-8">
         Already have an account?{' '}
-        <Link 
-          href="/login" 
-          className="text-orange-500 hover:text-orange-400 font-medium transition-colors"
+        <Link
+          href="/login"
+          className="text-[#8B5CF6] hover:text-purple-400 font-medium transition-colors"
         >
           Sign in
         </Link>
       </p>
-    </>
+    </div>
   );
 }

@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useMap } from './MapProvider';
+import L from 'leaflet';
 
 interface RouteLayerProps {
   id: string;
@@ -21,64 +22,40 @@ export function RouteLayer({
   dashed = false,
 }: RouteLayerProps) {
   const { map, isLoaded } = useMap();
+  const polylineRef = useRef<L.Polyline | null>(null);
 
   useEffect(() => {
     if (!map || !isLoaded || coordinates.length < 2) return;
 
-    const sourceId = `route-source-${id}`;
-    const layerId = `route-layer-${id}`;
+    // Convert [lng, lat] to [lat, lng] for Leaflet
+    const latLngs: L.LatLngExpression[] = coordinates.map(([lng, lat]) => [lat, lng]);
 
-    // Add source
-    if (!map.getSource(sourceId)) {
-      map.addSource(sourceId, {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'LineString',
-            coordinates,
-          },
-        },
-      });
-    } else {
-      // Update existing source
-      const source = map.getSource(sourceId) as mapboxgl.GeoJSONSource;
-      source.setData({
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'LineString',
-          coordinates,
-        },
-      });
+    // Create polyline options
+    const options: L.PolylineOptions = {
+      color,
+      weight: width,
+      opacity,
+      lineJoin: 'round',
+      lineCap: 'round',
+    };
+
+    // Add dash pattern if needed
+    if (dashed) {
+      options.dashArray = '8, 8';
     }
 
-    // Add layer if it doesn't exist
-    if (!map.getLayer(layerId)) {
-      map.addLayer({
-        id: layerId,
-        type: 'line',
-        source: sourceId,
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: {
-          'line-color': color,
-          'line-width': width,
-          'line-opacity': opacity,
-          ...(dashed && { 'line-dasharray': [2, 2] }),
-        },
-      });
+    // Create or update polyline
+    if (polylineRef.current) {
+      polylineRef.current.setLatLngs(latLngs);
+      polylineRef.current.setStyle(options);
+    } else {
+      polylineRef.current = L.polyline(latLngs, options).addTo(map);
     }
 
     return () => {
-      if (map.getLayer(layerId)) {
-        map.removeLayer(layerId);
-      }
-      if (map.getSource(sourceId)) {
-        map.removeSource(sourceId);
+      if (polylineRef.current && map) {
+        map.removeLayer(polylineRef.current);
+        polylineRef.current = null;
       }
     };
   }, [map, isLoaded, id, coordinates, color, width, opacity, dashed]);

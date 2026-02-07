@@ -1,11 +1,11 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
-import type { Map as MapboxMap } from 'mapbox-gl';
+import type { Map as LeafletMap } from 'leaflet';
 
 interface MapContextType {
-  map: MapboxMap | null;
-  setMap: (map: MapboxMap | null) => void;
+  map: LeafletMap | null;
+  setMap: (map: LeafletMap | null) => void;
   isLoaded: boolean;
   flyTo: (lng: number, lat: number, zoom?: number) => void;
 }
@@ -13,20 +13,19 @@ interface MapContextType {
 const MapContext = createContext<MapContextType | null>(null);
 
 export function MapProvider({ children }: { children: ReactNode }) {
-  const [map, setMap] = useState<MapboxMap | null>(null);
+  const [map, setMap] = useState<LeafletMap | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const handleSetMap = useCallback((newMap: MapboxMap | null) => {
+  const handleSetMap = useCallback((newMap: LeafletMap | null) => {
     setMap(newMap);
     setIsLoaded(!!newMap);
   }, []);
 
   const flyTo = useCallback((lng: number, lat: number, zoom = 14) => {
     if (map) {
-      map.flyTo({
-        center: [lng, lat],
-        zoom,
-        duration: 1500,
+      // Leaflet uses [lat, lng] order
+      map.flyTo([lat, lng], zoom, {
+        duration: 1.5,
       });
     }
   }, [map]);
@@ -45,3 +44,6 @@ export function useMap() {
   }
   return context;
 }
+
+// Also export for BaseMap compatibility
+export { useMap as useMapContext };
