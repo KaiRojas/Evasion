@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { 
-  Users, 
-  Plus, 
-  Search, 
-  MapPin, 
+import {
+  Users,
+  Plus,
+  Search,
+  MapPin,
   MessageSquare,
   CheckCircle,
   Star,
@@ -156,7 +156,9 @@ function GroupCard({ group }: { group: Group }) {
   );
 }
 
-export default function GroupsPage() {
+import { Suspense } from 'react';
+
+function GroupsContent() {
   const searchParams = useSearchParams();
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
@@ -291,5 +293,28 @@ export default function GroupsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function GroupsPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="animate-pulse">
+              <div className="h-24 bg-zinc-800 rounded-t-xl" />
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-b-xl p-4 space-y-3">
+                <div className="h-6 bg-zinc-800 rounded w-2/3" />
+                <div className="h-4 bg-zinc-800 rounded w-full" />
+                <div className="h-4 bg-zinc-800 rounded w-1/2" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    }>
+      <GroupsContent />
+    </Suspense>
   );
 }

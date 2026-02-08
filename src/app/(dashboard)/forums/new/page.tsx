@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { 
-  MessageSquare, 
-  HelpCircle, 
-  Car, 
-  Wrench, 
-  ShoppingBag, 
+import {
+  MessageSquare,
+  HelpCircle,
+  Car,
+  Wrench,
+  ShoppingBag,
   Calendar,
   BarChart3,
   Image as ImageIcon,
@@ -40,15 +40,17 @@ const threadTypes = [
   { id: 'poll', label: 'Poll', icon: BarChart3, description: 'Get community opinions' },
 ];
 
-export default function NewPostPage() {
+import { Suspense } from 'react';
+
+function NewThreadContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedGroup = searchParams.get('group');
-  
+
   const [loading, setLoading] = useState(false);
   const [boards, setBoards] = useState<Board[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
-  
+
   // Form state
   const [type, setType] = useState('discussion');
   const [destination, setDestination] = useState<'board' | 'group'>(preselectedGroup ? 'group' : 'board');
@@ -59,11 +61,11 @@ export default function NewPostPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [images, setImages] = useState<string[]>([]);
-  
+
   // For sale specific
   const [price, setPrice] = useState('');
   const [condition, setCondition] = useState('good');
-  
+
   // Poll specific
   const [pollQuestion, setPollQuestion] = useState('');
   const [pollOptions, setPollOptions] = useState(['', '']);
@@ -75,16 +77,16 @@ export default function NewPostPage() {
           fetch('/api/forum/boards'),
           fetch('/api/forum/groups'),
         ]);
-        
+
         const [boardsData, groupsData] = await Promise.all([
           boardsRes.json(),
           groupsRes.json(),
         ]);
-        
+
         if (boardsData.success) setBoards(boardsData.data);
         if (groupsData.success) {
           setGroups(groupsData.data);
-          
+
           // Pre-select group if provided in URL
           if (preselectedGroup) {
             const matchingGroup = groupsData.data.find(
@@ -99,7 +101,7 @@ export default function NewPostPage() {
         console.error('Error fetching destinations:', error);
       }
     }
-    
+
     fetchDestinations();
   }, [preselectedGroup]);
 
@@ -129,24 +131,24 @@ export default function NewPostPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!title.trim() || !content.trim()) {
       alert('Title and content are required');
       return;
     }
-    
+
     if (destination === 'board' && !boardId) {
       alert('Please select a board');
       return;
     }
-    
+
     if (destination === 'group' && !groupId) {
       alert('Please select a group');
       return;
     }
-    
+
     setLoading(true);
-    
+
     try {
       const body: Record<string, unknown> = {
         title: title.trim(),
@@ -155,13 +157,13 @@ export default function NewPostPage() {
         tags,
         images: images.map((url) => ({ url })),
       };
-      
+
       if (destination === 'board') {
         body.boardId = boardId;
       } else {
         body.groupId = groupId;
       }
-      
+
       if (type === 'for-sale' && price) {
         body.forSale = {
           price: parseFloat(price),
@@ -169,7 +171,7 @@ export default function NewPostPage() {
           condition,
         };
       }
-      
+
       if (type === 'poll' && pollQuestion) {
         body.poll = {
           question: pollQuestion,
@@ -177,15 +179,15 @@ export default function NewPostPage() {
           allowMultiple: false,
         };
       }
-      
+
       const res = await fetch('/api/forum/threads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      
+
       const data = await res.json();
-      
+
       if (data.success) {
         router.push(`/forums/thread/${data.data.slug}`);
       } else {
@@ -202,7 +204,7 @@ export default function NewPostPage() {
   return (
     <div className="p-4 lg:p-6 max-w-3xl mx-auto">
       <h1 className="text-2xl font-bold text-white mb-6">Create New Post</h1>
-      
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Post Type */}
         <div>
@@ -266,7 +268,7 @@ export default function NewPostPage() {
               </span>
             </button>
           </div>
-          
+
           {destination === 'board' ? (
             <select
               value={boardId}
@@ -505,5 +507,22 @@ export default function NewPostPage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function NewPostPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-zinc-800 rounded w-1/4" />
+          <div className="h-32 bg-zinc-800 rounded" />
+          <div className="h-32 bg-zinc-800 rounded" />
+          <div className="h-32 bg-zinc-800 rounded" />
+        </div>
+      </div>
+    }>
+      <NewThreadContent />
+    </Suspense>
   );
 }

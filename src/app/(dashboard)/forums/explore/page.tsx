@@ -64,11 +64,13 @@ interface User {
 }
 
 const trendingTags = [
-  'jdm', 'stance', 'turbo', 'drift', 'track', 'build', 
+  'jdm', 'stance', 'turbo', 'drift', 'track', 'build',
   'swap', 'restoration', 'euro', 'muscle', 'offroad', 'electric'
 ];
 
-export default function ExplorePage() {
+import { Suspense } from 'react';
+
+function ExploreContent() {
   const [activeTab, setActiveTab] = useState<'threads' | 'groups' | 'users'>('threads');
   const [trendingThreads, setTrendingThreads] = useState<Thread[]>([]);
   const [featuredGroups, setFeaturedGroups] = useState<Group[]>([]);
@@ -205,9 +207,9 @@ export default function ExplorePage() {
                     <div className={cn(
                       'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold',
                       index === 0 ? 'bg-yellow-500/20 text-yellow-400' :
-                      index === 1 ? 'bg-zinc-400/20 text-zinc-300' :
-                      index === 2 ? 'bg-orange-500/20 text-orange-400' :
-                      'bg-zinc-800 text-zinc-500'
+                        index === 1 ? 'bg-zinc-400/20 text-zinc-300' :
+                          index === 2 ? 'bg-orange-500/20 text-orange-400' :
+                            'bg-zinc-800 text-zinc-500'
                     )}>
                       {index + 1}
                     </div>
@@ -320,9 +322,9 @@ export default function ExplorePage() {
                     <div className={cn(
                       'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold',
                       index === 0 ? 'bg-yellow-500/20 text-yellow-400' :
-                      index === 1 ? 'bg-zinc-400/20 text-zinc-300' :
-                      index === 2 ? 'bg-orange-500/20 text-orange-400' :
-                      'bg-zinc-800 text-zinc-500'
+                        index === 1 ? 'bg-zinc-400/20 text-zinc-300' :
+                          index === 2 ? 'bg-orange-500/20 text-orange-400' :
+                            'bg-zinc-800 text-zinc-500'
                     )}>
                       {index + 1}
                     </div>
@@ -407,5 +409,22 @@ export default function ExplorePage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function ExplorePage() {
+  return (
+    <Suspense fallback={
+      <div className="p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-zinc-800 rounded w-1/4" />
+          <div className="h-32 bg-zinc-800 rounded" />
+          <div className="h-32 bg-zinc-800 rounded" />
+          <div className="h-32 bg-zinc-800 rounded" />
+        </div>
+      </div>
+    }>
+      <ExploreContent />
+    </Suspense>
   );
 }

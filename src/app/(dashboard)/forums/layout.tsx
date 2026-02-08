@@ -1,14 +1,14 @@
 'use client';
 
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { 
-  Home, 
-  MessageSquare, 
-  Users, 
-  Compass, 
-  Bell, 
+import {
+  Home,
+  MessageSquare,
+  Users,
+  Compass,
+  Bell,
   Search,
   Plus,
   Menu,
@@ -36,10 +36,111 @@ const quickFilters = [
   { href: '/forums?sort=top', label: 'Top', icon: Star },
 ];
 
-export default function ForumsLayout({ children }: ForumsLayoutProps) {
+function ForumsSidebar({
+  sidebarOpen,
+  setSidebarOpen
+}: {
+  sidebarOpen: boolean;
+  setSidebarOpen: (open: boolean) => void;
+}) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentSort = searchParams.get('sort');
+
+  return (
+    <>
+      <aside
+        className={cn(
+          'fixed inset-y-0 left-0 z-40 w-64 bg-zinc-950 border-r border-zinc-800 pt-14 transition-transform lg:translate-x-0 lg:static lg:z-0',
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        )}
+      >
+        <nav className="flex flex-col h-full p-4 space-y-1">
+          {/* Main Navigation */}
+          {navItems.map((item) => {
+            const isActive = pathname === item.href ||
+              (item.href !== '/forums' && pathname.startsWith(item.href));
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setSidebarOpen(false)}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                  isActive
+                    ? 'bg-red-600/20 text-red-500'
+                    : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
+                )}
+              >
+                <item.icon size={18} />
+                {item.label}
+              </Link>
+            );
+          })}
+
+          <div className="h-px bg-zinc-800 my-4" />
+
+          {/* Quick Filters */}
+          <p className="px-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
+            Quick Filters
+          </p>
+          {quickFilters.map((item) => {
+            const sortValue = item.href.split('sort=')[1]?.split('&')[0];
+            const isActive = pathname === '/forums' && currentSort === sortValue;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setSidebarOpen(false)}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                  isActive
+                    ? 'text-red-400 bg-red-500/10'
+                    : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
+                )}
+              >
+                <item.icon size={16} />
+                {item.label}
+              </Link>
+            );
+          })}
+
+          <div className="h-px bg-zinc-800 my-4" />
+
+          {/* Your Groups (placeholder) */}
+          <p className="px-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
+            Your Groups
+          </p>
+          <p className="px-3 text-sm text-zinc-600">
+            Join groups to see them here
+          </p>
+
+          {/* Mobile New Post Button */}
+          <div className="mt-auto pt-4 lg:hidden">
+            <Link
+              href="/forums/new"
+              onClick={() => setSidebarOpen(false)}
+              className="flex items-center justify-center gap-2 w-full bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors"
+            >
+              <Plus size={16} />
+              New Post
+            </Link>
+          </div>
+        </nav>
+      </aside>
+
+      {/* Sidebar overlay for mobile */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+    </>
+  );
+}
+
+export default function ForumsLayout({ children }: ForumsLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -94,94 +195,17 @@ export default function ForumsLayout({ children }: ForumsLayoutProps) {
       </header>
 
       <div className="flex">
-        {/* Sidebar */}
-        <aside
-          className={cn(
-            'fixed inset-y-0 left-0 z-40 w-64 bg-zinc-950 border-r border-zinc-800 pt-14 transition-transform lg:translate-x-0 lg:static lg:z-0',
-            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          )}
-        >
-          <nav className="flex flex-col h-full p-4 space-y-1">
-            {/* Main Navigation */}
-            {navItems.map((item) => {
-              const isActive = pathname === item.href || 
-                (item.href !== '/forums' && pathname.startsWith(item.href));
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                    isActive
-                      ? 'bg-red-600/20 text-red-500'
-                      : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
-                  )}
-                >
-                  <item.icon size={18} />
-                  {item.label}
-                </Link>
-              );
-            })}
-
-            <div className="h-px bg-zinc-800 my-4" />
-
-            {/* Quick Filters */}
-            <p className="px-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
-              Quick Filters
-            </p>
-            {quickFilters.map((item) => {
-              const sortValue = item.href.split('sort=')[1]?.split('&')[0];
-              const isActive = pathname === '/forums' && currentSort === sortValue;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                    isActive 
-                      ? 'text-red-400 bg-red-500/10'
-                      : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
-                  )}
-                >
-                  <item.icon size={16} />
-                  {item.label}
-                </Link>
-              );
-            })}
-
-            <div className="h-px bg-zinc-800 my-4" />
-
-            {/* Your Groups (placeholder) */}
-            <p className="px-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
-              Your Groups
-            </p>
-            <p className="px-3 text-sm text-zinc-600">
-              Join groups to see them here
-            </p>
-
-            {/* Mobile New Post Button */}
-            <div className="mt-auto pt-4 lg:hidden">
-              <Link
-                href="/forums/new"
-                onClick={() => setSidebarOpen(false)}
-                className="flex items-center justify-center gap-2 w-full bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors"
-              >
-                <Plus size={16} />
-                New Post
-              </Link>
+        <Suspense fallback={
+          <aside className="fixed inset-y-0 left-0 z-40 w-64 bg-zinc-950 border-r border-zinc-800 pt-14 hidden lg:block">
+            <div className="p-4 space-y-4">
+              <div className="h-8 bg-zinc-900 rounded w-3/4 animate-pulse" />
+              <div className="h-8 bg-zinc-900 rounded w-full animate-pulse" />
+              <div className="h-8 bg-zinc-900 rounded w-5/6 animate-pulse" />
             </div>
-          </nav>
-        </aside>
-
-        {/* Sidebar overlay for mobile */}
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 z-30 bg-black/50 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
+          </aside>
+        }>
+          <ForumsSidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+        </Suspense>
 
         {/* Main Content */}
         <main className="flex-1 min-w-0">

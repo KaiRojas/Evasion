@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import { useState, useEffect } from 'react';
 import { Clock } from 'lucide-react';
 
 interface TimeChartProps {
@@ -24,6 +25,14 @@ interface TimeChartProps {
 }
 
 export function TimeChart({ data, title, showBreakdown = false }: TimeChartProps) {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) return null;
+
   return (
     <div className="bg-zinc-900/40 border border-zinc-800/50 rounded-2xl p-5 backdrop-blur-sm">
       <h3 className="text-xs font-black uppercase italic tracking-wider text-[#F5F5F4] mb-4 flex items-center gap-2">

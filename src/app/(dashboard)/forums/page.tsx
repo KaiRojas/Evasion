@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { 
-  MessageSquare, 
-  Users, 
-  Eye, 
-  Heart, 
-  Clock, 
+import {
+  MessageSquare,
+  Users,
+  Eye,
+  Heart,
+  Clock,
   ChevronRight,
   Flame,
   Car,
@@ -244,12 +244,14 @@ const sortLabels: Record<string, string> = {
   top: 'Top',
 };
 
-export default function CommunityHomePage() {
+import { Suspense } from 'react';
+
+function CommunityHomeContent() {
   const searchParams = useSearchParams();
   const sortParam = searchParams.get('sort') || 'hot';
   const searchQuery = searchParams.get('search') || '';
   const tagFilter = searchParams.get('tag') || '';
-  
+
   const [threads, setThreads] = useState<Thread[]>([]);
   const [boards, setBoards] = useState<Board[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -262,7 +264,7 @@ export default function CommunityHomePage() {
         // Build threads query
         const threadsParams = new URLSearchParams();
         threadsParams.set('limit', '10');
-        
+
         // Map sort param to API sort
         const sortMapping: Record<string, string> = {
           hot: 'hot',
@@ -270,11 +272,11 @@ export default function CommunityHomePage() {
           top: 'top',
         };
         threadsParams.set('sort', sortMapping[sortParam] || 'hot');
-        
+
         if (searchQuery) {
           threadsParams.set('search', searchQuery);
         }
-        
+
         if (tagFilter) {
           threadsParams.set('tag', tagFilter);
         }
@@ -380,9 +382,9 @@ export default function CommunityHomePage() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-white flex items-center gap-2">
             <Flame size={20} className="text-orange-500" />
-            {searchQuery ? `Search: "${searchQuery}"` : 
-             tagFilter ? `#${tagFilter}` : 
-             `${sortLabels[sortParam] || 'Trending'} Discussions`}
+            {searchQuery ? `Search: "${searchQuery}"` :
+              tagFilter ? `#${tagFilter}` :
+                `${sortLabels[sortParam] || 'Trending'} Discussions`}
           </h2>
         </div>
         {threads.length > 0 ? (
@@ -406,5 +408,22 @@ export default function CommunityHomePage() {
         )}
       </section>
     </div>
+  );
+}
+
+export default function CommunityHomePage() {
+  return (
+    <Suspense fallback={
+      <div className="p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-zinc-800 rounded w-1/4" />
+          <div className="h-32 bg-zinc-800 rounded" />
+          <div className="h-32 bg-zinc-800 rounded" />
+          <div className="h-32 bg-zinc-800 rounded" />
+        </div>
+      </div>
+    }>
+      <CommunityHomeContent />
+    </Suspense>
   );
 }
