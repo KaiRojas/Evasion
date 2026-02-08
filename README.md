@@ -2,6 +2,22 @@
 
 A comprehensive web application for analyzing traffic stop data with interactive maps, real-time filtering, and detailed analytics.
 
+## Development Process
+
+This project builds upon the foundational work of [EvasionV2](https://github.com/Jwessel2020/EvasionV2) by Jwessel2020. Our mission was to elevate the user experience from a standard dashboard to a tactical, driver-focused tool.
+
+### Phase 1: UI Mapping & Redesign
+We started by deconstructing the original UI and reimagining it for "Drive Mode":
+- **Visual Overhaul**: Shifted to a deep "Midnight Purple" dark theme with glassmorphism effects to reduce eye strain at night.
+- **Mapbox Integration**: Replaced standard map layers with high-performance, custom-styled Mapbox navigation maps.
+- **Component Architecture**: Modularized the interface into reusable, touch-friendly components (Stat Cards, Nav Bar).
+
+### Phase 2: Feature Implementation
+With the design system in place, we built out the interactive core:
+- **Drive Mode Interaction**: Implemented an iOS-style "Edit Mode" with jiggle animations and drag-and-drop capabilities.
+- **Tactical Inputs**: Added "Click-to-Mark" for instant incident reporting and draggable sheets for route management.
+- **Performance**: Optimized map rendering to handle real-time location tracking and clustering without lag.
+
 ## Features
 
 - 📍 **Interactive Map Visualization** - View traffic stops on an interactive map with clustering and heat mapping
