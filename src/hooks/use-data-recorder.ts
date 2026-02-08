@@ -40,13 +40,17 @@ export interface DriveLog {
 }
 
 export function useDataRecorder(isRecording: boolean, simulate: boolean = false) {
-    const [geoPoints, setGeoPoints] = useState<GeoPoint[]>([]);
-    const [sensorReadings, setSensorReadings] = useState<SensorData[]>([]);
+    // Store data in refs to avoid re-renders and expensive array copies
+    const geoPointsRef = useRef<GeoPoint[]>([]);
+    const sensorReadingsRef = useRef<SensorData[]>([]);
+    const motionBuffer = useRef<SensorData[]>([]);
+
+    // UI State
     const [stats, setStats] = useState({ pointCount: 0, sensorCount: 0, fileSizeKB: 0 });
+    const [sensorsActive, setSensorsActive] = useState(false);
 
     // Refs for mutable state during recording loop
     const watchIdRef = useRef<number | null>(null);
-    const motionBuffer = useRef<SensorData[]>([]);
     const prevRecording = useRef(isRecording);
 
     // Request permissions for iOS 13+
@@ -67,14 +71,14 @@ export function useDataRecorder(isRecording: boolean, simulate: boolean = false)
 
     // Manual download trigger
     const downloadLogs = useCallback(() => {
-        if (geoPoints.length === 0) return;
+        if (geoPointsRef.current.length === 0) return;
 
         const logData: DriveLog = {
             id: crypto.randomUUID(),
-            startTime: geoPoints[0].timestamp,
-            endTime: geoPoints[geoPoints.length - 1].timestamp,
-            points: geoPoints,
-            sensorReadings: sensorReadings
+            startTime: geoPointsRef.current[0].timestamp,
+            endTime: geoPointsRef.current[geoPointsRef.current.length - 1].timestamp,
+            points: geoPointsRef.current,
+            sensorReadings: sensorReadingsRef.current
         };
 
         const blob = new Blob([JSON.stringify(logData, null, 2)], { type: 'application/json' });
@@ -86,15 +90,26 @@ export function useDataRecorder(isRecording: boolean, simulate: boolean = false)
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-    }, [geoPoints, sensorReadings]);
+    }, []);
 
     // Track device motion/orientation (High Frequency)
     useEffect(() => {
-        if (!isRecording || simulate) return;
+        if (!isRecording || simulate) {
+            setSensorsActive(simulate); // Sim mode implies sensors are "active"
+            return;
+        }
+
+        let lastMotionTime = 0;
 
         const handleMotion = (e: DeviceMotionEvent) => {
+            const now = Date.now();
+            if (now - lastMotionTime > 500) { // Check activity every 500ms
+                setSensorsActive(true);
+                lastMotionTime = now;
+            }
+
             const reading: SensorData = {
-                timestamp: Date.now(),
+                timestamp: now,
                 acceleration: {
                     x: e.acceleration?.x ?? null,
                     y: e.acceleration?.y ?? null,
@@ -103,15 +118,10 @@ export function useDataRecorder(isRecording: boolean, simulate: boolean = false)
                 orientation: { alpha: null, beta: null, gamma: null } // Merged below
             };
 
-            // We use a buffer ref to avoid React render loop overhead on 60fps events
             motionBuffer.current.push(reading);
         };
 
         const handleOrientation = (e: DeviceOrientationEvent) => {
-            // Create a reading or merge with last if very close? 
-            // For simplicity, we'll log orientation events separately or just attach to next motion
-            // Actually, typically we just want to update a "current orientation" ref and attach it to motion events
-            // But to be precise, let's just push to buffer.
             const reading: SensorData = {
                 timestamp: Date.now(),
                 acceleration: { x: null, y: null, z: null },
@@ -127,23 +137,27 @@ export function useDataRecorder(isRecording: boolean, simulate: boolean = false)
         window.addEventListener('devicemotion', handleMotion);
         window.addEventListener('deviceorientation', handleOrientation);
 
-        // Flush buffer to state periodically (e.g. every 1 sec) to update UI stats
+        // Flush buffer to storage ref periodically (every 1s) and update stats
         const flushInterval = setInterval(() => {
             if (motionBuffer.current.length > 0) {
-                setSensorReadings(prev => [...prev, ...motionBuffer.current]);
-                setStats(s => ({
-                    ...s,
-                    sensorCount: s.sensorCount + motionBuffer.current.length,
-                    fileSizeKB: Math.round((JSON.stringify(geoPoints).length + JSON.stringify(sensorReadings).length) / 1024)
-                }));
+                sensorReadingsRef.current.push(...motionBuffer.current);
                 motionBuffer.current = [];
             }
+
+            // Update UI stats
+            setStats({
+                pointCount: geoPointsRef.current.length,
+                sensorCount: sensorReadingsRef.current.length,
+                fileSizeKB: Math.round((JSON.stringify(geoPointsRef.current).length + JSON.stringify(sensorReadingsRef.current).length) / 1024)
+            });
+
         }, 1000);
 
         return () => {
             window.removeEventListener('devicemotion', handleMotion);
             window.removeEventListener('deviceorientation', handleOrientation);
             clearInterval(flushInterval);
+            setSensorsActive(false);
         };
     }, [isRecording, simulate]);
 
@@ -168,8 +182,8 @@ export function useDataRecorder(isRecording: boolean, simulate: boolean = false)
                         heading: 0, speed: 30
                     }
                 };
-                setGeoPoints(prev => [...prev, newPoint]);
-                setStats(s => ({ ...s, pointCount: s.pointCount + 1 }));
+                geoPointsRef.current.push(newPoint);
+                // Stats updated by flushInterval in sensor effect or we can add one here if sensors assume active
             }, 1000);
             return () => clearInterval(interval);
         }
@@ -189,10 +203,8 @@ export function useDataRecorder(isRecording: boolean, simulate: boolean = false)
                     }
                 };
 
-                setGeoPoints(prev => {
-                    const newPoints = [...prev, newPoint];
-                    return newPoints;
-                });
+                geoPointsRef.current.push(newPoint);
+                // Stats updated by sensor loop for unified UI update
             },
             (error) => console.error("GPS Error:", error),
             { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
@@ -205,12 +217,12 @@ export function useDataRecorder(isRecording: boolean, simulate: boolean = false)
 
     // Save run logic
     useEffect(() => {
-        if (prevRecording.current && !isRecording && geoPoints.length > 0) {
+        if (prevRecording.current && !isRecording && geoPointsRef.current.length > 0) {
             console.log("🛑 Recording stopped. Saving...");
 
             // Flush any remaining sensors
-            const finalSensors = [...sensorReadings, ...motionBuffer.current];
-            const finalPoints = geoPoints;
+            const finalSensors = [...sensorReadingsRef.current, ...motionBuffer.current];
+            const finalPoints = geoPointsRef.current;
 
             // Calculate distance roughly
             let distance = 0;
@@ -223,7 +235,7 @@ export function useDataRecorder(isRecording: boolean, simulate: boolean = false)
                 id: runId,
                 timestamp: finalPoints[0].timestamp,
                 durationMs: finalPoints[finalPoints.length - 1].timestamp - finalPoints[0].timestamp,
-                distanceKm: 0, // Placeholder
+                distanceKm: 0, // Placeholder for now
                 pointCount: finalPoints.length,
                 previewTrace: finalPoints.map(p => [p.coords.longitude, p.coords.latitude] as [number, number])
             };
@@ -236,28 +248,21 @@ export function useDataRecorder(isRecording: boolean, simulate: boolean = false)
                 sensorReadings: finalSensors
             };
 
-            // Save to history (Note: useRunHistory needs update to handle DriveLog structure if different from before)
-            // For now, we pass fullLog as "rawData"
+            // Save to history
             useRunHistory.getState().addRun(runMetadata, fullLog);
 
             // Auto download
-            const blob = new Blob([JSON.stringify(fullLog, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `evasion-log-${runId.slice(0, 8)}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            downloadLogs();
 
-        } else if (isRecording && geoPoints.length === 0) {
-            setGeoPoints([]);
-            setSensorReadings([]);
-            setStats({ pointCount: 0, sensorCount: 0, fileSizeKB: 0 });
+        } else if (isRecording && geoPointsRef.current.length === 0) {
+            // Reset refs
+            geoPointsRef.current = [];
+            sensorReadingsRef.current = [];
             motionBuffer.current = [];
+            setStats({ pointCount: 0, sensorCount: 0, fileSizeKB: 0 });
         }
         prevRecording.current = isRecording;
-    }, [isRecording, geoPoints, sensorReadings]);
+    }, [isRecording, downloadLogs]);
 
-    return { points: geoPoints, stats, downloadLogs, requestPermissions };
+    return { points: geoPointsRef.current, stats, downloadLogs, requestPermissions, sensorsActive };
 }

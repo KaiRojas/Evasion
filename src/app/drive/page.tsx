@@ -114,7 +114,7 @@ export default function DrivePage() {
     const { location, heading, speed: currentSpeed } = useGeolocation({ watchPosition: true, enableHighAccuracy: true });
     const [isRecording, setIsRecording] = useState(false);
     const [simulate, setSimulate] = useState(false); // New Simulation state
-    const { stats, points, requestPermissions } = useDataRecorder(isRecording, simulate); // Pass simulate flag
+    const { stats, points, requestPermissions, sensorsActive } = useDataRecorder(isRecording, simulate); // Pass simulate flag
     useWakeLock(true); // Keep screen on whenever in Drive Mode
     const [hiddenCards, setHiddenCards] = useState({ time: false, distance: false });
     const [highContrastCards, setHighContrastCards] = useState({ time: false, distance: false });
@@ -364,7 +364,15 @@ export default function DrivePage() {
                         <span className="size-2 rounded-full bg-[#EF4444] animate-pulse" />
                         <span className="text-[10px] font-black uppercase tracking-wider">REC {stats.pointCount}</span>
                     </div>
-                    <div className="text-[9px] text-white/40 font-mono tracking-tight">{stats.fileSizeKB}KB</div>
+                    <div className="flex items-center gap-2 text-[9px] font-mono tracking-tight">
+                        <span className="text-white/40">{stats.fileSizeKB}KB</span>
+                        {sensorsActive && (
+                            <span className="flex items-center gap-1 text-green-400">
+                                <span className="size-1 rounded-full bg-green-400" />
+                                MEMS
+                            </span>
+                        )}
+                    </div>
                 </div>
             )}
 
