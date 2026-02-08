@@ -152,7 +152,7 @@ function DropdownSection({ title, children, defaultOpen = false }: { title: stri
 
 function DriveCard({ name, date, distance, time, score, privacy, likes }: any) {
     return (
-        <div className="bg-[#0D0B14] rounded-xl border border-[rgba(255,255,255,0.05)] overflow-hidden hover:border-[rgba(139,92,246,0.3)] transition-colors cursor-pointer group">
+        <Link href={`/drives/${name.toLowerCase().replace(/\s+/g, '-')}`} className="bg-[#0D0B14] rounded-xl border border-[rgba(255,255,255,0.05)] overflow-hidden hover:border-[rgba(139,92,246,0.3)] transition-colors cursor-pointer group block">
             <div className="aspect-[2/1] bg-[#1A1820] relative flex items-center justify-center">
                 <span className="material-symbols-outlined text-[#2A2830] text-6xl">map</span>
 
@@ -196,6 +196,6 @@ function DriveCard({ name, date, distance, time, score, privacy, likes }: any) {
                     </div>
                 </div>
             </div>
-        </div>
+        </Link>
     );
 }

@@ -1,11 +1,11 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
-import type { Map as LeafletMap } from 'leaflet';
+import type { Map as MapboxMap } from 'mapbox-gl';
 
 interface MapContextType {
-  map: LeafletMap | null;
-  setMap: (map: LeafletMap | null) => void;
+  map: MapboxMap | null;
+  setMap: (map: MapboxMap | null) => void;
   isLoaded: boolean;
   flyTo: (lng: number, lat: number, zoom?: number) => void;
 }
@@ -13,19 +13,21 @@ interface MapContextType {
 const MapContext = createContext<MapContextType | null>(null);
 
 export function MapProvider({ children }: { children: ReactNode }) {
-  const [map, setMap] = useState<LeafletMap | null>(null);
+  const [map, setMap] = useState<MapboxMap | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const handleSetMap = useCallback((newMap: LeafletMap | null) => {
+  const handleSetMap = useCallback((newMap: MapboxMap | null) => {
     setMap(newMap);
     setIsLoaded(!!newMap);
   }, []);
 
   const flyTo = useCallback((lng: number, lat: number, zoom = 14) => {
     if (map) {
-      // Leaflet uses [lat, lng] order
-      map.flyTo([lat, lng], zoom, {
-        duration: 1.5,
+      map.flyTo({
+        center: [lng, lat],
+        zoom,
+        duration: 2000, // slightly longer for smoother transition
+        essential: true
       });
     }
   }, [map]);

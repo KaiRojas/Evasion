@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { MapProvider, BaseMap, FriendMarker, PoliceMarker, HeatmapLayer, SpeedTrapLayer } from '@/components/map';
+import { MapProvider, BaseMap, FriendMarker, PoliceMarker, HeatmapLayer, SpeedTrapLayer, LocationControl } from '@/components/map';
 import { Button } from '@/components/ui';
 import { PredictionPanel } from '@/components/analytics';
 import { useGeolocation } from '@/hooks';
@@ -62,7 +62,7 @@ const MOCK_ALERTS: PoliceAlert[] = [
 export default function MapPage() {
   const { location, isLoading: locationLoading, error: locationError, refresh: refreshLocation } = useGeolocation({ watchPosition: true });
   const { isBroadcasting, setBroadcasting } = useLocationStore();
-  
+
   const [friends, setFriends] = useState<LiveUserPin[]>(MOCK_FRIENDS);
   const [alerts, setAlerts] = useState<PoliceAlert[]>(MOCK_ALERTS);
   const [showFriends, setShowFriends] = useState(true);
@@ -73,7 +73,7 @@ export default function MapPage() {
   const [selectedFriend, setSelectedFriend] = useState<LiveUserPin | null>(null);
   const [selectedTrap, setSelectedTrap] = useState<Record<string, unknown> | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
-  
+
   // Fetch heatmap data
   useEffect(() => {
     if (showHeatmap && !heatmapData) {
@@ -97,12 +97,12 @@ export default function MapPage() {
   }, [showHeatmap, heatmapData]);
 
   // Initial center on user location if available
-  const initialCenter: [number, number] = location 
-    ? [location.longitude, location.latitude] 
+  const initialCenter: [number, number] = location
+    ? [location.longitude, location.latitude]
     : [-118.2437, 34.0522]; // LA default
-  
+
   // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/8ecbc98d-1e8e-44c9-8f10-253e23d24891',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MapPage.tsx:render',message:'MAP_PAGE_RENDER_V6',data:{showSpeedTraps,selectedTrap:!!selectedTrap,selectedFriend:!!selectedFriend,codeVersion:'v6-feb4'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'F',runId:'post-fix-6'})}).catch(()=>{});
+  fetch('http://127.0.0.1:7242/ingest/8ecbc98d-1e8e-44c9-8f10-253e23d24891', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'MapPage.tsx:render', message: 'MAP_PAGE_RENDER_V6', data: { showSpeedTraps, selectedTrap: !!selectedTrap, selectedFriend: !!selectedFriend, codeVersion: 'v6-feb4' }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'F', runId: 'post-fix-6' }) }).catch(() => { });
   console.log('[DEBUG-V6] MapPage render - showSpeedTraps:', showSpeedTraps);
   // #endregion
 
@@ -123,29 +123,29 @@ export default function MapPage() {
   return (
     <div className="h-[calc(100vh-8rem)] relative">
       <MapProvider>
-        <BaseMap 
+        <BaseMap
           initialCenter={initialCenter}
           initialZoom={location ? 13 : 10}
           className="w-full h-full rounded-xl overflow-hidden border border-zinc-800"
         >
           {/* Friend markers */}
           {showFriends && friends.map((friend) => (
-            <FriendMarker 
-              key={friend.id} 
-              friend={friend} 
+            <FriendMarker
+              key={friend.id}
+              friend={friend}
               onClick={handleFriendClick}
             />
           ))}
 
           {/* Police alert markers */}
           {showAlerts && alerts.map((alert) => (
-            <PoliceMarker 
-              key={alert.id} 
+            <PoliceMarker
+              key={alert.id}
               alert={alert}
               onClick={handleAlertClick}
             />
           ))}
-          
+
           {/* Historical heatmap layer */}
           <HeatmapLayer
             data={heatmapData}
@@ -154,14 +154,14 @@ export default function MapPage() {
             intensity={1.2}
             opacity={0.6}
           />
-          
+
           {/* Speed trap markers from historical data */}
           <SpeedTrapLayer
             visible={showSpeedTraps}
             minStops={5}
             onTrapClick={(props) => {
               // #region agent log
-              fetch('http://127.0.0.1:7242/ingest/8ecbc98d-1e8e-44c9-8f10-253e23d24891',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MapPage.tsx:onTrapClick',message:'TRAP PIN CLICKED',data:{props:JSON.stringify(props).slice(0,200)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'R',runId:'post-fix-7'})}).catch(()=>{});
+              fetch('http://127.0.0.1:7242/ingest/8ecbc98d-1e8e-44c9-8f10-253e23d24891', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'MapPage.tsx:onTrapClick', message: 'TRAP PIN CLICKED', data: { props: JSON.stringify(props).slice(0, 200) }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'R', runId: 'post-fix-7' }) }).catch(() => { });
               console.log('[DEBUG-V7] Trap pin clicked:', props);
               // #endregion
               setSelectedTrap(props);
@@ -217,7 +217,7 @@ export default function MapPage() {
             size="sm"
             onClick={() => {
               // #region agent log
-              fetch('http://127.0.0.1:7242/ingest/8ecbc98d-1e8e-44c9-8f10-253e23d24891',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MapPage.tsx:toggleSpeedTraps',message:'Toggle clicked',data:{currentValue:showSpeedTraps,newValue:!showSpeedTraps},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'K',runId:'post-fix-5'})}).catch(()=>{});
+              fetch('http://127.0.0.1:7242/ingest/8ecbc98d-1e8e-44c9-8f10-253e23d24891', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'MapPage.tsx:toggleSpeedTraps', message: 'Toggle clicked', data: { currentValue: showSpeedTraps, newValue: !showSpeedTraps }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'K', runId: 'post-fix-5' }) }).catch(() => { });
               // #endregion
               setShowSpeedTraps(!showSpeedTraps);
             }}
@@ -237,7 +237,7 @@ export default function MapPage() {
             Heatmap
           </Button>
         </div>
-        
+
         {/* Prediction panel */}
         <PredictionPanel
           userLocation={location ? { latitude: location.latitude, longitude: location.longitude } : null}
@@ -256,31 +256,8 @@ export default function MapPage() {
           </Button>
         </div>
 
-        {/* Location status */}
-        <div className="absolute bottom-6 left-6 bg-zinc-900/90 backdrop-blur-sm rounded-lg p-3 border border-zinc-800">
-          <div className="flex items-center gap-3">
-            <div className={`w-3 h-3 rounded-full ${location ? 'bg-green-500' : 'bg-zinc-500'} ${isBroadcasting ? 'animate-pulse' : ''}`} />
-            <div className="text-sm">
-              {locationLoading ? (
-                <span className="text-zinc-400">Getting location...</span>
-              ) : locationError ? (
-                <span className="text-red-400">{locationError}</span>
-              ) : location ? (
-                <span className="text-zinc-300">
-                  {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
-                </span>
-              ) : (
-                <span className="text-zinc-400">Location unavailable</span>
-              )}
-            </div>
-            <button 
-              onClick={refreshLocation}
-              className="p-1.5 hover:bg-zinc-800 rounded transition-colors"
-            >
-              <Locate size={16} className="text-zinc-400" />
-            </button>
-          </div>
-        </div>
+        {/* Location Control */}
+        <LocationControl />
 
         {/* Selected friend panel */}
         {selectedFriend && (
@@ -297,14 +274,14 @@ export default function MapPage() {
                   <p className="text-sm text-zinc-400">@{selectedFriend.username}</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setSelectedFriend(null)}
                 className="p-1 hover:bg-zinc-800 rounded transition-colors"
               >
                 <X size={18} className="text-zinc-400" />
               </button>
             </div>
-            
+
             <div className="space-y-2 text-sm">
               {selectedFriend.speed !== undefined && (
                 <div className="flex justify-between">
@@ -351,14 +328,14 @@ export default function MapPage() {
                   <p className="text-sm text-zinc-400">Historical enforcement zone</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setSelectedTrap(null)}
                 className="p-1 hover:bg-zinc-800 rounded transition-colors"
               >
                 <X size={18} className="text-zinc-400" />
               </button>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-2 text-sm mb-3">
               <div className="bg-zinc-800/50 rounded-lg p-2">
                 <p className="text-zinc-400 text-xs">Trap Score</p>
@@ -428,7 +405,7 @@ function ReportModal({ onClose }: { onClose: () => void }) {
 
   const handleSubmit = () => {
     if (!reportType || !location) return;
-    
+
     // TODO: Submit report via API
     console.log('Report:', { reportType, description, location });
     onClose();
@@ -436,7 +413,7 @@ function ReportModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
-      <div 
+      <div
         className="bg-zinc-900 rounded-xl border border-zinc-800 p-6 w-full max-w-md mx-4 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
@@ -452,11 +429,10 @@ function ReportModal({ onClose }: { onClose: () => void }) {
             <button
               key={type.id}
               onClick={() => setReportType(type.id)}
-              className={`p-4 rounded-lg border-2 transition-all ${
-                reportType === type.id
-                  ? 'border-orange-500 bg-orange-500/10'
-                  : 'border-zinc-700 hover:border-zinc-600'
-              }`}
+              className={`p-4 rounded-lg border-2 transition-all ${reportType === type.id
+                ? 'border-orange-500 bg-orange-500/10'
+                : 'border-zinc-700 hover:border-zinc-600'
+                }`}
             >
               <div className="text-2xl mb-1">{type.icon}</div>
               <div className="text-sm text-white">{type.label}</div>
@@ -475,9 +451,9 @@ function ReportModal({ onClose }: { onClose: () => void }) {
           <Button variant="outline" className="flex-1" onClick={onClose}>
             Cancel
           </Button>
-          <Button 
-            variant="danger" 
-            className="flex-1" 
+          <Button
+            variant="danger"
+            className="flex-1"
             onClick={handleSubmit}
             disabled={!reportType || !location}
           >

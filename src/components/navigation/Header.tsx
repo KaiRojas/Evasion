@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
 import { Mail, Info } from 'lucide-react';
+import { useAuth } from '@/hooks';
 import { cn } from '@/lib/utils';
 
 interface HeaderProps {

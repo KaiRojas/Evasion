@@ -40,90 +40,131 @@ export function PWAInstallPrompt() {
     if (!showPrompt || isStandalone) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex flex-col bg-[#06040A] text-[#F5F5F4] overflow-x-hidden animate-in fade-in duration-500">
-            {/* Ambient Dynamic Island Glow */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[200px] h-[40px] bg-[#8B5CF6]/30 blur-[40px] rounded-full" />
+        <div className="fixed inset-0 z-[9999] flex flex-col bg-[#0a0a0a] text-[#F5F5F4] overflow-x-hidden animate-in fade-in duration-500 font-[family-name:var(--font-space)]">
+            <style jsx>{`
+                .ambient-glow {
+                    background: radial-gradient(circle at 50% -20%, rgba(139, 92, 246, 0.2) 0%, rgba(10, 10, 10, 0) 70%);
+                }
+                .bottom-glow {
+                    background: radial-gradient(circle at 50% 100%, rgba(139, 92, 246, 0.15) 0%, rgba(10, 10, 10, 0) 60%);
+                }
+                .pill-container {
+                    background: rgba(255, 255, 255, 0.03);
+                    border-radius: 2rem;
+                    border: 1px solid rgba(139, 92, 246, 0.1);
+                }
+                .glitch-wordmark {
+                    position: relative;
+                    display: inline-block;
+                    font-style: italic;
+                    letter-spacing: 0.4em;
+                    font-weight: 800;
+                    color: #ffffff;
+                    text-transform: uppercase;
+                }
+                .glitch-wordmark::before,
+                .glitch-wordmark::after {
+                    content: "EVASION";
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    opacity: 0.8;
+                }
+                .glitch-wordmark::before {
+                    color: #8b5cf6;
+                    z-index: -1;
+                    transform: translate(-2px, 1px) skew(-5deg);
+                    clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
+                }
+                .glitch-wordmark::after {
+                    color: #d8b4fe;
+                    z-index: -2;
+                    transform: translate(2px, -1px) skew(5deg);
+                    clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
+                }
+                .scanline {
+                    position: absolute;
+                    height: 1px;
+                    width: 120%;
+                    left: -10%;
+                    background: rgba(139, 92, 246, 0.4);
+                    box-shadow: 0 0 8px rgba(139, 92, 246, 0.8);
+                    top: 50%;
+                }
+            `}</style>
 
-            {/* Content */}
+            <div className="ambient-glow absolute inset-0 pointer-events-none"></div>
+            <div className="bottom-glow absolute inset-0 pointer-events-none"></div>
+
             <div className="relative flex h-full min-h-screen w-full flex-col z-10">
-                {/* Wordmark */}
                 <div className="flex items-center p-8 pb-4 justify-center">
-                    <div className="relative group">
-                        <div className="absolute -inset-8 bg-[#8B5CF6] blur-2xl opacity-10 group-hover:opacity-20 transition-opacity" />
-                        <img
-                            src="/images/evasion-logo.png"
-                            alt="EVASION"
-                            className="h-12 w-auto relative animate-in slide-in-from-top-4 duration-700"
-                        />
+                    <div className="relative">
+                        <div className="absolute -inset-4 bg-[#8b5cf6] blur-2xl opacity-20"></div>
+                        <div className="glitch-wordmark text-2xl">
+                            EVASION
+                            <div className="scanline"></div>
+                        </div>
                     </div>
                 </div>
 
-                {/* Title */}
-                <div className="flex flex-col items-center px-6 pt-4 pb-10">
-                    <h2 className="text-[#F5F5F4] tracking-tight text-[32px] font-black italic uppercase leading-tight text-center">
-                        Initialize Tactical App
-                    </h2>
-                    <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.3em] pt-3 text-center border-b border-[#8B5CF6]/20 pb-2">
-                        Deployment Phase: Local Installation
-                    </p>
+                <div className="flex flex-col items-center px-6 pt-6 pb-8">
+                    <h2 className="text-[#F5F5F4] tracking-tight text-[32px] font-bold leading-tight text-center">Install App</h2>
+                    <p className="text-zinc-400 text-base font-normal leading-normal pt-2 text-center max-w-[280px]">Follow these steps to add EVASION to your home screen</p>
                 </div>
 
-                {/* Steps */}
-                <div className="flex-grow px-8 py-2">
+                <div className="flex-grow px-6 py-2">
                     <div className="space-y-4">
                         {isIOS ? (
                             <>
-                                {/* iOS Safari Steps */}
-                                <div className="p-5 flex items-center gap-5 rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-sm transition-all hover:bg-white/[0.04]">
-                                    <div className="shrink-0 w-10 h-10 rounded-xl bg-[#8B5CF6]/20 border border-[#8B5CF6]/30 flex items-center justify-center text-[#8B5CF6] font-black italic text-lg shadow-[0_0_15px_rgba(139,92,246,0.2)]">01</div>
+                                <div className="pill-container p-4 flex items-center gap-4">
+                                    <div className="shrink-0 w-8 h-8 rounded-full bg-[#8b5cf6] flex items-center justify-center text-white font-bold text-sm">1</div>
                                     <div className="flex flex-col">
-                                        <p className="text-[#F5F5F4] text-xs font-black uppercase tracking-wider italic">
-                                            Engage <span className="text-[#8B5CF6]">Safari Menu</span>
-                                        </p>
-                                        <p className="text-zinc-500 text-[10px] font-bold mt-1">Found in the global navigation bar</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-[#F5F5F4] text-base font-medium">Tap the <span className="material-symbols-outlined text-[#8b5cf6] text-lg align-middle leading-none">more_horiz</span> menu</p>
+                                        </div>
+                                        <p className="text-zinc-500 text-xs">Found in the bottom right corner</p>
                                     </div>
                                 </div>
-
-                                <div className="p-5 flex items-center gap-5 rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-sm transition-all hover:bg-white/[0.04]">
-                                    <div className="shrink-0 w-10 h-10 rounded-xl bg-[#8B5CF6]/20 border border-[#8B5CF6]/30 flex items-center justify-center text-[#8B5CF6] font-black italic text-lg shadow-[0_0_15px_rgba(139,92,246,0.2)]">02</div>
+                                <div className="pill-container p-4 flex items-center gap-4">
+                                    <div className="shrink-0 w-8 h-8 rounded-full bg-[#8b5cf6] flex items-center justify-center text-white font-bold text-sm">2</div>
                                     <div className="flex flex-col">
-                                        <p className="text-[#F5F5F4] text-xs font-black uppercase tracking-wider italic">
-                                            Select <span className="text-[#8B5CF6]">Share Action</span>
-                                        </p>
-                                        <p className="text-zinc-500 text-[10px] font-bold mt-1">Locate the external export icon</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-[#F5F5F4] text-base font-medium">Tap Share <span className="material-symbols-outlined text-[#8b5cf6] text-lg align-middle leading-none">ios_share</span></p>
+                                        </div>
+                                        <p className="text-zinc-500 text-xs">At the top of the popup</p>
                                     </div>
                                 </div>
-
-                                <div className="p-5 flex items-center gap-5 rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-sm transition-all hover:bg-white/[0.04]">
-                                    <div className="shrink-0 w-10 h-10 rounded-xl bg-[#8B5CF6]/20 border border-[#8B5CF6]/30 flex items-center justify-center text-[#8B5CF6] font-black italic text-lg shadow-[0_0_15px_rgba(139,92,246,0.2)]">03</div>
+                                <div className="pill-container p-4 flex items-center gap-4">
+                                    <div className="shrink-0 w-8 h-8 rounded-full bg-[#8b5cf6] flex items-center justify-center text-white font-bold text-sm">3</div>
                                     <div className="flex flex-col">
-                                        <p className="text-[#F5F5F4] text-xs font-black uppercase tracking-wider italic">
-                                            <span className="text-[#8B5CF6]">Add to Home Screen</span>
-                                        </p>
-                                        <p className="text-zinc-500 text-[10px] font-bold mt-1">Finalize local integration</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-[#F5F5F4] text-base font-medium">Tap "Add to Home Screen" <span className="material-symbols-outlined text-[#8b5cf6] text-lg align-middle leading-none">add_box</span></p>
+                                        </div>
+                                        <p className="text-zinc-500 text-xs">Scroll down in the menu</p>
                                     </div>
                                 </div>
                             </>
                         ) : (
                             <>
                                 {/* Chrome / Desktop Steps */}
-                                <div className="p-5 flex items-center gap-5 rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-sm transition-all hover:bg-white/[0.04]">
-                                    <div className="shrink-0 w-10 h-10 rounded-xl bg-[#8B5CF6]/20 border border-[#8B5CF6]/30 flex items-center justify-center text-[#8B5CF6] font-black italic text-lg shadow-[0_0_15px_rgba(139,92,246,0.2)]">01</div>
+                                <div className="pill-container p-4 flex items-center gap-4">
+                                    <div className="shrink-0 w-8 h-8 rounded-full bg-[#8b5cf6] flex items-center justify-center text-white font-bold text-sm">1</div>
                                     <div className="flex flex-col">
-                                        <p className="text-[#F5F5F4] text-xs font-black uppercase tracking-wider italic">
-                                            Detect <span className="text-[#8B5CF6]">Install Target</span>
-                                        </p>
-                                        <p className="text-zinc-500 text-[10px] font-bold mt-1">Look for the install icon in address bar</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-[#F5F5F4] text-base font-medium">Click the <span className="material-symbols-outlined text-[#8b5cf6] text-lg align-middle leading-none">install_mobile</span> icon</p>
+                                        </div>
+                                        <p className="text-zinc-500 text-xs">Found in the address bar</p>
                                     </div>
                                 </div>
-
-                                <div className="p-5 flex items-center gap-5 rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-sm transition-all hover:bg-white/[0.04]">
-                                    <div className="shrink-0 w-10 h-10 rounded-xl bg-[#8B5CF6]/20 border border-[#8B5CF6]/30 flex items-center justify-center text-[#8B5CF6] font-black italic text-lg shadow-[0_0_15px_rgba(139,92,246,0.2)]">02</div>
+                                <div className="pill-container p-4 flex items-center gap-4">
+                                    <div className="shrink-0 w-8 h-8 rounded-full bg-[#8b5cf6] flex items-center justify-center text-white font-bold text-sm">2</div>
                                     <div className="flex flex-col">
-                                        <p className="text-[#F5F5F4] text-xs font-black uppercase tracking-wider italic">
-                                            Execute <span className="text-[#8B5CF6]">Installation</span>
-                                        </p>
-                                        <p className="text-zinc-500 text-[10px] font-bold mt-1">Confirm and authorize deployment</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-[#F5F5F4] text-base font-medium">Click "Install"</p>
+                                        </div>
+                                        <p className="text-zinc-500 text-xs">Confirm the installation prompt</p>
                                     </div>
                                 </div>
                             </>
@@ -131,20 +172,21 @@ export function PWAInstallPrompt() {
                     </div>
                 </div>
 
-                {/* Footer Action */}
-                <div className="px-8 pb-12 flex flex-col items-center mt-auto">
-                    <button
-                        onClick={handleDismiss}
-                        className="group flex flex-col items-center gap-2"
-                    >
-                        <span className="text-[#8B5CF6] text-[10px] font-black uppercase tracking-[0.3em] group-hover:tracking-[0.4em] transition-all duration-300">
-                            Skip Deployment
-                        </span>
-                        <div className="w-8 h-0.5 bg-zinc-800 group-hover:bg-[#8B5CF6] group-hover:w-12 transition-all duration-300" />
-                    </button>
-                    <p className="mt-6 text-[8px] text-zinc-700 font-bold uppercase tracking-widest text-center">
-                        Application version: 2.1.0-STABLE | tactical overlay: active
-                    </p>
+                <div className="px-6 py-12 flex flex-col items-center mt-auto">
+                    <div className="flex items-center justify-center mb-16">
+                        <div className="relative">
+                            <div className="absolute -inset-12 bg-[#8b5cf6]/30 blur-3xl rounded-full opacity-60"></div>
+                            <span className="material-symbols-outlined text-[#8b5cf6] text-8xl font-light relative z-10">more_horiz</span>
+                        </div>
+                    </div>
+                    <div className="pb-8">
+                        <button
+                            onClick={handleDismiss}
+                            className="text-gray-500 text-sm font-medium hover:text-[#F5F5F4] transition-colors underline underline-offset-4 decoration-gray-800"
+                        >
+                            I'll do it later
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

@@ -12,29 +12,44 @@ import { getMockTimePatterns } from '@/lib/mock-data-generator';
  */
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const type = (searchParams.get('type') || 'hourly') as 'hourly' | 'daily' | 'monthly';
-    const subAgency = searchParams.get('subAgency');
+    // --- SIMULATION MODE LOGIC ---
+    // Target anchor: April 4, 2024
+    const SIMULATION_ANCHOR = new Date('2024-04-04T12:00:00Z');
+    const now = new Date();
+    const simulationOffset = now.getTime() - SIMULATION_ANCHOR.getTime();
 
-    // Check if we should force mock mode
-    if (process.env.NEXT_PUBLIC_DEV_MODE === 'true') {
-      return NextResponse.json({ success: true, data: getMockTimePatterns(type as any), source: 'mock' });
+    const startDateStr = searchParams.get('startDate');
+    const endDateStr = searchParams.get('endDate');
+
+    // Build WHERE clause with shifted dates
+    let dateFilter = '';
+
+    if (startDateStr) {
+      const queryStart = new Date(new Date(startDateStr).getTime() - simulationOffset);
+      // Format as YYYY-MM-DD HH:mm:ss for postgres
+      const startIso = queryStart.toISOString().replace('T', ' ').split('.')[0];
+      dateFilter += ` AND stop_date >= '${startIso}'`;
     }
 
-    let data;
+    if (endDateStr) {
+      const queryEnd = new Date(new Date(endDateStr).getTime() - simulationOffset);
+      const endIso = queryEnd.toISOString().replace('T', ' ').split('.')[0];
+      dateFilter += ` AND stop_date <= '${endIso}'`;
+    }
+
 
     // Test connection
     await prisma.$connect();
 
     switch (type) {
       case 'hourly':
-        data = await getHourlyPatterns(subAgency);
+        data = await getHourlyPatterns(subAgency, dateFilter);
         break;
       case 'daily':
-        data = await getDailyPatterns(subAgency);
+        data = await getDailyPatterns(subAgency, dateFilter);
         break;
       case 'monthly':
-        data = await getMonthlyPatterns(subAgency);
+        data = await getMonthlyPatterns(subAgency, dateFilter);
         break;
       default:
         return NextResponse.json(
@@ -61,8 +76,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
-async function getHourlyPatterns(subAgency: string | null) {
-  const whereClause = subAgency ? `WHERE sub_agency = '${subAgency}'` : '';
+async function getHourlyPatterns(subAgency: string | null, dateFilter: string) {
+  let whereClause = 'WHERE 1=1';
+  if (subAgency) whereClause += ` AND sub_agency = '${subAgency}'`;
+  if (dateFilter) whereClause += dateFilter;
 
   const results = await prisma.$queryRawUnsafe<Array<{
     hour: number;
@@ -96,8 +113,10 @@ async function getHourlyPatterns(subAgency: string | null) {
   return hourlyData;
 }
 
-async function getDailyPatterns(subAgency: string | null) {
-  const whereClause = subAgency ? `WHERE sub_agency = '${subAgency}'` : '';
+async function getDailyPatterns(subAgency: string | null, dateFilter: string) {
+  let whereClause = 'WHERE 1=1';
+  if (subAgency) whereClause += ` AND sub_agency = '${subAgency}'`;
+  if (dateFilter) whereClause += dateFilter;
 
   const results = await prisma.$queryRawUnsafe<Array<{
     day: number;
@@ -133,8 +152,10 @@ async function getDailyPatterns(subAgency: string | null) {
   return dailyData;
 }
 
-async function getMonthlyPatterns(subAgency: string | null) {
-  const whereClause = subAgency ? `WHERE sub_agency = '${subAgency}'` : '';
+async function getMonthlyPatterns(subAgency: string | null, dateFilter: string) {
+  let whereClause = 'WHERE 1=1';
+  if (subAgency) whereClause += ` AND sub_agency = '${subAgency}'`;
+  if (dateFilter) whereClause += dateFilter;
 
   const results = await prisma.$queryRawUnsafe<Array<{
     month: number;

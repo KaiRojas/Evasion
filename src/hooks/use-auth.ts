@@ -203,6 +203,12 @@ export function useAuth() {
     router.push('/home');
   }, [setUser, router]);
 
+  // Login as dev (bypass)
+  const loginAsDev = useCallback(() => {
+    setUser(DEV_USER);
+    router.push('/home');
+  }, [setUser, router]);
+
   // Logout function
   const logout = useCallback(async () => {
     await supabase.auth.signOut();
@@ -238,6 +244,7 @@ export function useAuth() {
     isLoading,
     login,
     loginAsGuest,
+    loginAsDev,
     signup,
     logout,
     resetPassword,

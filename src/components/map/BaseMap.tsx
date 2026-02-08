@@ -1,145 +1,251 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { MapProvider, useMapContext } from './MapProvider';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import { MapContainer, TileLayer, ZoomControl, ScaleControl, useMap } from 'react-leaflet';
+import Map, { NavigationControl, ScaleControl, useMap as useReactMapGL, type ViewStateChangeEvent } from 'react-map-gl/mapbox';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
+import { applyEvasionMapTheme } from './mapTheme';
 
-// Fix for default marker icons in Leaflet with Next.js
-const defaultIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
-L.Marker.prototype.options.icon = defaultIcon;
+// Ensure you have your token in .env.local
+const RAW_MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+const MAPBOX_TOKEN = RAW_MAPBOX_TOKEN?.trim();
+const MAPBOX_TOKEN_INVALID = !MAPBOX_TOKEN || MAPBOX_TOKEN.toLowerCase().includes('placeholder');
 
 interface BaseMapProps {
-  initialCenter?: [number, number];
+  initialCenter?: [number, number]; // [lng, lat]
   initialZoom?: number;
-  onMove?: (center: { lng: number; lat: number }, zoom: number) => void;
-  onClick?: (lng: number, lat: number) => void;
+  initialPitch?: number;
+  initialBearing?: number;
+  viewState?: {
+    longitude: number;
+    latitude: number;
+    zoom: number;
+    pitch?: number;
+    bearing?: number;
+    padding?: { top: number; bottom: number; left: number; right: number };
+  };
+  followUser?: boolean;
+  followResumeMs?: number;
+  followResetKey?: number;
+  onMove?: (center: { lng: number; lat: number }, zoom: number, viewState?: any) => void;
+  onClick?: (lng: number, lat: number, x: number, y: number) => void;
   className?: string;
   children?: React.ReactNode;
+  hideControls?: boolean;
+  mapStyle?: string;
+  theme?: 'evasion' | 'default';
+  antialias?: boolean;
 }
 
-// Controller component to sync our custom MapContext and handle events
-function MapEvents({
+type MapViewState = NonNullable<BaseMapProps['viewState']> & {
+  padding?: { top: number; bottom: number; left: number; right: number };
+};
+
+// Internal component to sync state between react-map-gl and our custom context
+function MapStateSync({
   onMove,
   onClick,
-  setMap
+  setCustomMap
 }: {
-  onMove?: (center: { lng: number; lat: number }, zoom: number) => void;
-  onClick?: (lng: number, lat: number) => void;
-  setMap: (map: L.Map | null) => void;
+  onMove?: (center: { lng: number; lat: number }, zoom: number, viewState?: any) => void;
+  onClick?: (lng: number, lat: number, x: number, y: number) => void;
+  setCustomMap: (map: mapboxgl.Map | null) => void;
 }) {
-  const map = useMap();
+  const { current: map } = useReactMapGL();
 
   useEffect(() => {
-    setMap(map);
-    return () => setMap(null);
-  }, [map, setMap]);
+    if (map) {
+      setCustomMap(map.getMap());
+    }
+    return () => setCustomMap(null);
+  }, [map, setCustomMap]);
+
+  return null;
+}
+
+function MapThemeSync({ enabled }: { enabled: boolean }) {
+  const { current: mapRef } = useReactMapGL();
 
   useEffect(() => {
-    if (!onMove && !onClick) return;
+    if (!mapRef || !enabled) return;
+    const map = mapRef.getMap();
 
-    const handleMoveEnd = () => {
-      if (onMove) {
-        const center = map.getCenter();
-        onMove({ lng: center.lng, lat: center.lat }, map.getZoom());
-      }
+    const applyTheme = () => {
+      applyEvasionMapTheme(map);
     };
 
-    const handleClick = (e: L.LeafletMouseEvent) => {
-      if (onClick) {
-        onClick(e.latlng.lng, e.latlng.lat);
-      }
-    };
+    if (map.isStyleLoaded()) {
+      applyTheme();
+    }
 
-    map.on('moveend', handleMoveEnd);
-    map.on('click', handleClick);
-
+    map.on('style.load', applyTheme);
     return () => {
-      map.off('moveend', handleMoveEnd);
-      map.off('click', handleClick);
+      map.off('style.load', applyTheme);
     };
-  }, [map, onMove, onClick]);
+  }, [mapRef, enabled]);
 
   return null;
 }
 
 function BaseMapInner({
-  initialCenter = [-118.2437, 34.0522], // Los Angeles default
+  initialCenter = [-118.2437, 34.0522], // Los Angeles default [lng, lat]
   initialZoom = 12,
+  initialPitch = 0,
+  initialBearing = 0,
+  viewState: externalViewState,
+  followUser = false,
+  followResumeMs = 6000,
+  followResetKey,
   onMove,
   onClick,
   className = 'h-full w-full',
   children,
+  hideControls = false,
+  mapStyle = "mapbox://styles/mapbox/dark-v11",
+  theme = 'evasion',
+  antialias = true
 }: BaseMapProps) {
   const { setMap } = useMapContext();
-  const [isReady, setIsReady] = useState(false);
+  const [internalViewState, setInternalViewState] = useState<MapViewState>({
+    longitude: initialCenter[0],
+    latitude: initialCenter[1],
+    zoom: initialZoom,
+    pitch: initialPitch,
+    bearing: initialBearing
+  });
+  const [isUserInteracting, setIsUserInteracting] = useState(false);
+  const followTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    setIsReady(true);
-  }, []);
+  const viewState = (!followUser && externalViewState) ? externalViewState : internalViewState;
 
-  if (!isReady) {
+  if (MAPBOX_TOKEN_INVALID) {
     return (
-      <div className={`bg-zinc-950 ${className}`} style={{ minHeight: '400px' }} />
+      <div className={`flex items-center justify-center bg-zinc-950 text-red-500 p-4 border border-red-900 ${className}`}>
+        Error: NEXT_PUBLIC_MAPBOX_TOKEN is missing or a placeholder. Set a real Mapbox token and restart the dev server.
+      </div>
     );
   }
 
+  useEffect(() => {
+    if (!followUser || !externalViewState || isUserInteracting) return;
+    setInternalViewState(prev => ({
+      ...prev,
+      ...externalViewState,
+      padding: externalViewState.padding ?? prev.padding,
+    }));
+  }, [
+    followUser,
+    isUserInteracting,
+    externalViewState?.longitude,
+    externalViewState?.latitude,
+    externalViewState?.zoom,
+    externalViewState?.pitch,
+    externalViewState?.bearing,
+    externalViewState?.padding
+  ]);
+
+  useEffect(() => {
+    if (!followUser || followResetKey === undefined) return;
+    if (followTimeoutRef.current) {
+      clearTimeout(followTimeoutRef.current);
+      followTimeoutRef.current = null;
+    }
+    setIsUserInteracting(false);
+    if (externalViewState) {
+      setInternalViewState(prev => ({
+        ...prev,
+        ...externalViewState,
+        padding: externalViewState.padding ?? prev.padding,
+      }));
+    }
+  }, [
+    followUser,
+    followResetKey,
+    externalViewState?.longitude,
+    externalViewState?.latitude,
+    externalViewState?.zoom,
+    externalViewState?.pitch,
+    externalViewState?.bearing,
+    externalViewState?.padding
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (followTimeoutRef.current) {
+        clearTimeout(followTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div className={`relative ${className}`} style={{ minHeight: '400px' }}>
-      <MapContainer
-        center={[initialCenter[1], initialCenter[0]]} // [lat, lng]
-        zoom={initialZoom}
-        zoomControl={false}
-        className="absolute inset-0 w-full h-full"
-        scrollWheelZoom={true}
+      <Map
+        {...viewState}
+        antialias={antialias}
+        onMove={(evt: ViewStateChangeEvent) => {
+          if (!externalViewState || followUser) {
+            setInternalViewState(evt.viewState);
+          }
+          if (onMove) {
+            onMove(
+              { lng: evt.viewState.longitude, lat: evt.viewState.latitude },
+              evt.viewState.zoom,
+              evt.viewState
+            );
+          }
+        }}
+        onMoveStart={() => {
+          if (!followUser) return;
+          setIsUserInteracting(true);
+          if (followTimeoutRef.current) {
+            clearTimeout(followTimeoutRef.current);
+          }
+        }}
+        onMoveEnd={() => {
+          if (!followUser) return;
+          if (followTimeoutRef.current) {
+            clearTimeout(followTimeoutRef.current);
+          }
+          followTimeoutRef.current = setTimeout(() => {
+            setIsUserInteracting(false);
+          }, followResumeMs);
+        }}
+        onClick={evt => {
+          if (onClick) {
+            onClick(evt.lngLat.lng, evt.lngLat.lat, evt.point.x, evt.point.y);
+          }
+        }}
+        style={{ width: '100%', height: '100%' }}
+        mapStyle={mapStyle}
+        mapboxAccessToken={MAPBOX_TOKEN}
+        reuseMaps
+        attributionControl={false} // We'll add our own or rely on the default tiny one
       >
-        <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          subdomains="abcd"
-          maxZoom={20}
+        {!hideControls && (
+          <>
+            <NavigationControl position="top-right" showCompass={true} />
+            <ScaleControl position="bottom-left" />
+          </>
+        )}
+
+        <MapStateSync
+          onMove={onMove}
+          onClick={onClick}
+          setCustomMap={setMap as any}
         />
 
-        <ZoomControl position="topright" />
-        <ScaleControl position="bottomleft" />
-
-        <MapEvents onMove={onMove} onClick={onClick} setMap={setMap as any} />
+        <MapThemeSync enabled={theme === 'evasion'} />
 
         {children}
-      </MapContainer>
+      </Map>
 
-      {/* Custom dark theme overrides for Leaflet controls */}
+      {/* Custom attribution styling if needed, otherwise Mapbox default is fine */}
       <style jsx global>{`
-        .leaflet-control-zoom a {
+        .mapboxgl-ctrl-group {
           background-color: rgba(6, 4, 10, 0.9) !important;
-          color: #F5F5F4 !important;
-          border-color: rgba(139, 92, 246, 0.2) !important;
+          border: 1px solid rgba(139, 92, 246, 0.2) !important;
         }
-        .leaflet-control-zoom a:hover {
-          background-color: rgba(139, 92, 246, 0.3) !important;
-        }
-        .leaflet-control-scale-line {
-          background-color: rgba(6, 4, 10, 0.8) !important;
-          color: #F5F5F4 !important;
-          border-color: rgba(139, 92, 246, 0.3) !important;
-        }
-        .leaflet-control-attribution {
-          background-color: rgba(6, 4, 10, 0.8) !important;
-          color: #888 !important;
-          font-size: 10px !important;
-        }
-        .leaflet-control-attribution a {
-          color: #8B5CF6 !important;
-        }
-        .leaflet-container {
-          background-color: #06040A !important;
+        .mapboxgl-ctrl-icon {
+          filter: invert(1) !important; /* Make icons white */
         }
       `}</style>
     </div>

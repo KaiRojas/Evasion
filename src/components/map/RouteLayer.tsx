@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useMap } from './MapProvider';
-import L from 'leaflet';
+import type mapboxgl from 'mapbox-gl';
 
 interface RouteLayerProps {
   id: string;
@@ -22,43 +22,89 @@ export function RouteLayer({
   dashed = false,
 }: RouteLayerProps) {
   const { map, isLoaded } = useMap();
-  const polylineRef = useRef<L.Polyline | null>(null);
+  const [layerAdded, setLayerAdded] = useState(false);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+
+  const sourceId = `route-source-${id}`;
+  const layerId = `route-layer-${id}`;
 
   useEffect(() => {
-    if (!map || !isLoaded || coordinates.length < 2) return;
+    if (!map || !isLoaded) return;
+    mapRef.current = map;
 
-    // Convert [lng, lat] to [lat, lng] for Leaflet
-    const latLngs: L.LatLngExpression[] = coordinates.map(([lng, lat]) => [lat, lng]);
+    const addLayer = () => {
+      // Add source
+      if (!map.getSource(sourceId)) {
+        map.addSource(sourceId, {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            geometry: {
+              type: 'LineString',
+              coordinates: coordinates,
+            },
+            properties: {},
+          },
+        });
+      }
 
-    // Create polyline options
-    const options: L.PolylineOptions = {
-      color,
-      weight: width,
-      opacity,
-      lineJoin: 'round',
-      lineCap: 'round',
+      // Add layer
+      if (!map.getLayer(layerId)) {
+        map.addLayer({
+          id: layerId,
+          type: 'line',
+          source: sourceId,
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round',
+          },
+          paint: {
+            'line-color': color,
+            'line-width': width,
+            'line-opacity': opacity,
+            ...(dashed ? { 'line-dasharray': [2, 2] } : {}),
+          },
+        });
+      }
+      setLayerAdded(true);
     };
 
-    // Add dash pattern if needed
-    if (dashed) {
-      options.dashArray = '8, 8';
-    }
-
-    // Create or update polyline
-    if (polylineRef.current) {
-      polylineRef.current.setLatLngs(latLngs);
-      polylineRef.current.setStyle(options);
+    if (map.isStyleLoaded()) {
+      addLayer();
     } else {
-      polylineRef.current = L.polyline(latLngs, options).addTo(map);
+      map.once('style.load', addLayer);
     }
 
     return () => {
-      if (polylineRef.current && map) {
-        map.removeLayer(polylineRef.current);
-        polylineRef.current = null;
+      const currentMap = mapRef.current;
+      if (!currentMap) return;
+
+      if (currentMap.getLayer(layerId)) {
+        currentMap.removeLayer(layerId);
       }
+      if (currentMap.getSource(sourceId)) {
+        currentMap.removeSource(sourceId);
+      }
+      setLayerAdded(false);
     };
-  }, [map, isLoaded, id, coordinates, color, width, opacity, dashed]);
+  }, [map, isLoaded, id, color, width, opacity, dashed]);
+
+  // Update data when coordinates change
+  useEffect(() => {
+    if (!map || !layerAdded) return;
+
+    const source = map.getSource(sourceId) as mapboxgl.GeoJSONSource;
+    if (source) {
+      source.setData({
+        type: 'Feature',
+        geometry: {
+          type: 'LineString', // Use LineString for a route
+          coordinates: coordinates,
+        },
+        properties: {},
+      });
+    }
+  }, [map, layerAdded, coordinates, sourceId]);
 
   return null;
 }

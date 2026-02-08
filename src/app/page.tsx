@@ -4,36 +4,40 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks';
 
 export default function AuthLandingPage() {
-    const { loginAsGuest } = useAuth();
+    const { loginAsGuest, loginAsDev } = useAuth();
 
     return (
         <div className="relative min-h-screen bg-black text-white overflow-hidden">
             {/* Background Image with Gradient Overlay */}
-            <div className="fixed inset-0 z-0">
+            {/* Background Image with Gradient Overlay */}
+            <div className="fixed inset-0 z-0 bg-[#000000]">
                 <img
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4TvIz858XyzdwWD8JzwHE7P1rAG-ko8VQGdx_9KOjCZRUDn7zPX7T1-r2d-UT4z272JkI17GM7_zYMnDL2dFA-Cs_lpJ2-oGIMLZ-GOzmClEkC6KTrj0CJFBzO4Z5kscRNWSrKgyWdP6ECpc-C9SWs4kG35XCQhV9zfio5TZrB4JWEcYdOXJs_z1OZvC8OvVsoc215Dd7YQrIdchEtVxM07dbhUaIbNFjesrLpf4jqgGYpYiCI9pTg-UCavIemPzu1vbRNnTvfFw"
-                    alt="Sports car environment"
-                    className="w-full h-full object-cover object-center"
+                    src="/images/login-bg.png"
+                    alt="Login Background"
+                    className="w-full h-full object-contain object-top opacity-80"
+                    onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                    }}
                 />
-                <div className="absolute inset-0 bg-gradient-to-b from-black via-black/40 to-black/80" />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60" />
             </div>
 
             {/* Content */}
-            <div className="relative z-10 flex flex-col min-h-screen w-full max-w-[430px] mx-auto px-8">
+            <div className="relative z-10 flex flex-col h-screen w-full max-w-[430px] mx-auto px-8 overflow-hidden">
                 {/* Logo Section */}
-                <div className="flex flex-col items-center justify-center pt-24">
+                <div className="flex flex-col items-center justify-center pt-8 flex-shrink-0">
                     <img
                         src="/images/evasion-logo.png"
                         alt="EVASION"
-                        className="h-32 w-auto mb-2"
+                        className="h-64 w-auto mb-2 object-contain"
                     />
                 </div>
 
-                {/* Spacer */}
-                <div className="flex-1" />
+                {/* Flexible Spacer */}
+                <div className="flex-1 min-h-[20px]" />
 
                 {/* Auth Buttons */}
-                <div className="flex flex-col gap-3.5 mb-24">
+                <div className="flex flex-col gap-3.5 mb-4 flex-shrink-0 w-full">
                     {/* Email Sign Up */}
                     <Link
                         href="/signup"
@@ -65,7 +69,7 @@ export default function AuthLandingPage() {
                         Sign in with Google
                     </button>
                     {/* Login Link */}
-                    <div className="flex flex-col items-center justify-center mt-6">
+                    <div className="flex flex-col items-center justify-center mt-4">
                         <p className="text-[#A8A8A8] text-[10px] font-medium tracking-[0.2em] uppercase">
                             Already have an account?{' '}
                             <Link
@@ -78,17 +82,24 @@ export default function AuthLandingPage() {
                     </div>
                 </div>
 
-                {/* Spacer */}
-                <div className="flex-1" />
-
                 {/* Continue as Guest */}
-                <div className="flex flex-col items-center justify-center pb-10">
+                <div className="flex flex-col items-center justify-center pb-8 gap-4 flex-shrink-0">
                     <button
                         onClick={loginAsGuest}
                         className="text-[#A8A8A8] text-[10px] font-medium tracking-[0.2em] uppercase hover:text-white transition-colors"
                     >
                         Continue as guest
                     </button>
+
+                    {/* Dev Mode - Only visible in development */}
+                    {process.env.NODE_ENV === 'development' && (
+                        <button
+                            onClick={loginAsDev}
+                            className="bg-[#2E1065]/50 border border-[#8B5CF6]/20 px-4 py-2 rounded-full text-[#8B5CF6] text-[10px] font-bold tracking-[0.2em] uppercase hover:bg-[#8B5CF6]/20 transition-all"
+                        >
+                            Dev Mode Access
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

@@ -168,101 +168,38 @@ Click any point on the map to see:
 - Speed data (if applicable)
 - Alcohol/accident indicators
 
+
+## Docker Setup (Recommended)
+
+1.  **Install Docker Desktop**: Ensure Docker is installed and running.
+2.  **Start Services**:
+    ```bash
+    docker-compose up -d
+    ```
+3.  **Initialize Database**:
+    ```bash
+    npx prisma migrate dev
+    ```
+4.  **Import Data**:
+    ```bash
+    # Place MDSP_Traffic_Violations.csv in the project root
+    npx tsx scripts/import-violations.ts "MDSP_Traffic_Violations.csv"
+    ```
+
 ## Technology Stack
 
 - **Frontend:**
   - [Next.js 14](https://nextjs.org/) - React framework
   - [TypeScript](https://www.typescriptlang.org/) - Type safety
   - [Tailwind CSS](https://tailwindcss.com/) - Styling
-  - [Mapbox GL JS](https://docs.mapbox.com/mapbox-gl-js/) - Interactive maps
+  - [Leaflet](https://leafletjs.com/) - Mobile-friendly interactive maps
   - [Recharts](https://recharts.org/) - Data visualization
 
 - **Backend:**
   - [PostgreSQL](https://www.postgresql.org/) - Database
   - [Prisma](https://www.prisma.io/) - ORM
-  - Next.js API Routes - RESTful API
-
-- **Database Features:**
-  - Spatial indexing for fast geographic queries
-  - Computed columns for speed analysis
-  - Materialized views for hotspot detection
-
-## Performance Optimization
-
-The application uses several optimization techniques:
-
-- **Spatial Sampling** - Dynamic point sampling based on zoom level
-- **Query Limits** - Automatic result limiting (5,000-10,000 points)
-- **Sequential Queries** - Area drill-down uses sequential queries to prevent memory issues
-- **Clustering** - Mapbox clustering for better performance with many points
-- **Caching** - API response caching for frequently accessed data
-
-## Troubleshooting
-
-### Database Connection Issues
-
-If you see "Failed to fetch points" errors:
-
-1. Check PostgreSQL is running: `sudo systemctl status postgresql` (Linux) or check Services (Windows)
-2. Verify `.env` DATABASE_URL is correct
-3. Test connection: `psql $DATABASE_URL`
-
-### Import Fails
-
-If `npm run db:import` fails:
-
-1. Ensure CSV files are in `Police data/` folder
-2. Check CSV format matches expected schema
-3. Verify database has sufficient disk space
-4. Check logs in `logs/` directory
-
-### Map Not Loading
-
-1. Clear browser cache
-2. Check browser console for errors
-3. Verify Mapbox token (if using custom styles)
-4. Ensure data was imported successfully
-
-### Build Errors
-
-```bash
-# Clear Next.js cache
-rm -rf .next
-
-# Reinstall dependencies
-rm -rf node_modules package-lock.json
-npm install
-
-# Rebuild
-npm run build
-```
-
-## Data Privacy
-
-- Traffic stop data may contain sensitive information
-- Ensure compliance with local privacy laws
-- The dataset is excluded from version control (`.gitignore`)
-- Data files must be shared separately and securely
-
-## Contributing
-
-1. Create a feature branch: `git checkout -b feature-name`
-2. Make your changes
-3. Test thoroughly
-4. Commit: `git commit -m "Add feature description"`
-5. Push: `git push origin feature-name`
-6. Create a Pull Request
+  - [Docker](https://www.docker.com/) - Containerization
 
 ## License
 
 This project is for educational and research purposes.
-
-## Support
-
-For issues or questions:
-- Open an issue on GitHub
-- Contact the project maintainer
-
----
-
-Built with ❤️ using Next.js and Mapbox

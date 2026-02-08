@@ -1,6 +1,3 @@
-// Evasion V2 - Database Schema
-// Social Navigation Network for Automotive Enthusiasts
-
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
@@ -9,53 +6,37 @@ generator client {
 datasource db {
   provider   = "postgresql"
   url        = env("DATABASE_URL")
-  extensions = [postgis, uuidOssp(map: "uuid-ossp"), pgTrgm(map: "pg_trgm")]
+  extensions = [pg_trgm, postgis, uuid_ossp(map: "uuid-ossp")]
 }
 
-// ============================================
-// USER & AUTHENTICATION
-// ============================================
-
 model User {
-  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  email           String    @unique
-  username        String    @unique @db.VarChar(30)
-  displayName     String    @map("display_name") @db.VarChar(50)
-  avatarUrl       String?   @map("avatar_url")
-  bio             String?   @db.VarChar(500)
-  dateOfBirth     DateTime  @map("date_of_birth") @db.Date
-  isVerified      Boolean   @default(false) @map("is_verified")
-  isActive        Boolean   @default(true) @map("is_active")
-  lastSeenAt      DateTime? @map("last_seen_at")
-  
-  // Location (stored as lat/lng, converted to PostGIS point in queries)
-  homeLatitude    Float?    @map("home_latitude")
-  homeLongitude   Float?    @map("home_longitude")
-  
-  // Privacy settings stored as JSON
-  privacySettings Json      @default("{}") @map("privacy_settings")
-  
-  // Timestamps
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-
-  // Relations
-  vehicles          Vehicle[]
-  createdRoutes     Route[]           @relation("RouteCreator")
-  routeRatings      RouteRating[]
-  organizedEvents   Event[]           @relation("EventOrganizer")
-  eventParticipants EventParticipant[]
-  forumPosts        ForumPost[]
-  forumComments     ForumComment[]
-  policeReports     PoliceReport[]
-  locations         UserLocation[]
-  
-  // Friendships (bidirectional)
-  sentFriendships     Friendship[] @relation("FriendshipSender")
-  receivedFriendships Friendship[] @relation("FriendshipReceiver")
-  
-  // Car spotting
-  spottedCars       CarSpotting[] @relation("Spotter")
+  id                  String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email               String             @unique
+  username            String             @unique @db.VarChar(30)
+  displayName         String             @map("display_name") @db.VarChar(50)
+  avatarUrl           String?            @map("avatar_url")
+  bio                 String?            @db.VarChar(500)
+  dateOfBirth         DateTime           @map("date_of_birth") @db.Date
+  isVerified          Boolean            @default(false) @map("is_verified")
+  isActive            Boolean            @default(true) @map("is_active")
+  lastSeenAt          DateTime?          @map("last_seen_at")
+  homeLatitude        Float?             @map("home_latitude")
+  homeLongitude       Float?             @map("home_longitude")
+  privacySettings     Json               @default("{}") @map("privacy_settings")
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
+  spottedCars         CarSpotting[]      @relation("Spotter")
+  eventParticipants   EventParticipant[]
+  organizedEvents     Event[]            @relation("EventOrganizer")
+  forumComments       ForumComment[]
+  forumPosts          ForumPost[]
+  receivedFriendships Friendship[]       @relation("FriendshipReceiver")
+  sentFriendships     Friendship[]       @relation("FriendshipSender")
+  policeReports       PoliceReport[]
+  routeRatings        RouteRating[]
+  createdRoutes       Route[]            @relation("RouteCreator")
+  locations           UserLocation[]
+  vehicles            Vehicle[]
 
   @@index([email])
   @@index([username])
@@ -63,39 +44,26 @@ model User {
   @@map("users")
 }
 
-// ============================================
-// VEHICLES & GARAGE
-// ============================================
-
 model Vehicle {
-  id            String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  userId        String    @map("user_id") @db.Uuid
-  
-  make          String    @db.VarChar(50)
-  model         String    @db.VarChar(50)
+  id            String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId        String         @map("user_id") @db.Uuid
+  make          String         @db.VarChar(50)
+  model         String         @db.VarChar(50)
   year          Int
-  color         String?   @db.VarChar(30)
-  vin           String?   @unique @db.VarChar(17)
-  licensePlate  String?   @map("license_plate") @db.VarChar(15)
-  nickname      String?   @db.VarChar(50)
-  
-  // Vehicle details as JSON (flexible for different car types)
-  modifications Json      @default("[]")
-  specs         Json      @default("{}")
-  
-  // Photos stored as array of URLs
-  photos        String[]  @default([])
-  
-  isPrimary     Boolean   @default(false) @map("is_primary")
-  isPublic      Boolean   @default(true) @map("is_public")
-  
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-
-  // Relations
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  stats         VehicleStats[]
+  color         String?        @db.VarChar(30)
+  vin           String?        @unique @db.VarChar(17)
+  licensePlate  String?        @map("license_plate") @db.VarChar(15)
+  nickname      String?        @db.VarChar(50)
+  modifications Json           @default("[]")
+  specs         Json           @default("{}")
+  photos        String[]       @default([])
+  isPrimary     Boolean        @default(false) @map("is_primary")
+  isPublic      Boolean        @default(true) @map("is_public")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
   spottings     CarSpotting[]
+  stats         VehicleStats[]
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([make, model])
@@ -103,41 +71,30 @@ model Vehicle {
 }
 
 model VehicleStats {
-  id            String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  vehicleId     String    @map("vehicle_id") @db.Uuid
-  
-  horsepower    Float?
-  torque        Float?
-  quarterMile   Float?    @map("quarter_mile")
-  zeroToSixty   Float?    @map("zero_to_sixty")
-  topSpeed      Float?    @map("top_speed")
-  totalMiles    Int?      @map("total_miles")
-  
-  recordedAt    DateTime  @default(now()) @map("recorded_at")
-
-  // Relations
-  vehicle       Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  vehicleId   String   @map("vehicle_id") @db.Uuid
+  horsepower  Float?
+  torque      Float?
+  quarterMile Float?   @map("quarter_mile")
+  zeroToSixty Float?   @map("zero_to_sixty")
+  topSpeed    Float?   @map("top_speed")
+  totalMiles  Int?     @map("total_miles")
+  recordedAt  DateTime @default(now()) @map("recorded_at")
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 
   @@index([vehicleId])
   @@map("vehicle_stats")
 }
 
-// ============================================
-// SOCIAL - FRIENDSHIPS
-// ============================================
-
 model Friendship {
-  id          String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  userId      String           @map("user_id") @db.Uuid
-  friendId    String           @map("friend_id") @db.Uuid
-  status      FriendshipStatus @default(PENDING)
-  
-  createdAt   DateTime         @default(now()) @map("created_at")
-  updatedAt   DateTime         @updatedAt @map("updated_at")
-
-  // Relations
-  user        User             @relation("FriendshipSender", fields: [userId], references: [id], onDelete: Cascade)
-  friend      User             @relation("FriendshipReceiver", fields: [friendId], references: [id], onDelete: Cascade)
+  id        String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  friendId  String           @map("friend_id") @db.Uuid
+  status    FriendshipStatus @default(PENDING)
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+  friend    User             @relation("FriendshipReceiver", fields: [friendId], references: [id], onDelete: Cascade)
+  user      User             @relation("FriendshipSender", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, friendId])
   @@index([userId])
@@ -146,50 +103,27 @@ model Friendship {
   @@map("friendships")
 }
 
-enum FriendshipStatus {
-  PENDING
-  ACCEPTED
-  BLOCKED
-}
-
-// ============================================
-// ROUTES & NAVIGATION
-// ============================================
-
 model Route {
-  id            String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  creatorId     String          @map("creator_id") @db.Uuid
-  
-  name          String          @db.VarChar(100)
-  description   String?         @db.Text
-  
-  // Route geometry stored as JSON array of coordinates
-  // Format: [[lng, lat], [lng, lat], ...]
+  id              String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  creatorId       String        @map("creator_id") @db.Uuid
+  name            String        @db.VarChar(100)
+  description     String?
   pathCoordinates Json          @map("path_coordinates")
-  
-  // Route metadata
   distanceMiles   Float         @map("distance_miles")
   elevationGain   Int?          @map("elevation_gain")
-  estimatedTime   Int?          @map("estimated_time") // in minutes
+  estimatedTime   Int?          @map("estimated_time")
   difficulty      Difficulty    @default(MODERATE)
-  
-  // Discovery
-  tags          String[]        @default([])
-  driveCount    Int             @default(0) @map("drive_count")
-  avgRating     Float           @default(0) @map("avg_rating")
-  
-  // Visibility
-  isPublic      Boolean         @default(true) @map("is_public")
-  isFeatured    Boolean         @default(false) @map("is_featured")
-  
-  createdAt     DateTime        @default(now()) @map("created_at")
-  updatedAt     DateTime        @updatedAt @map("updated_at")
-
-  // Relations
-  creator       User            @relation("RouteCreator", fields: [creatorId], references: [id], onDelete: Cascade)
-  points        RoutePoint[]
-  ratings       RouteRating[]
-  eventRoutes   EventRoute[]
+  tags            String[]      @default([])
+  driveCount      Int           @default(0) @map("drive_count")
+  avgRating       Float         @default(0) @map("avg_rating")
+  isPublic        Boolean       @default(true) @map("is_public")
+  isFeatured      Boolean       @default(false) @map("is_featured")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  eventRoutes     EventRoute[]
+  points          RoutePoint[]
+  ratings         RouteRating[]
+  creator         User          @relation("RouteCreator", fields: [creatorId], references: [id], onDelete: Cascade)
 
   @@index([creatorId])
   @@index([isPublic, isFeatured])
@@ -199,46 +133,313 @@ model Route {
 }
 
 model RoutePoint {
-  id          String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  routeId     String        @map("route_id") @db.Uuid
-  
-  latitude    Float
-  longitude   Float
-  sequence    Int
-  pointType   RoutePointType @default(WAYPOINT) @map("point_type")
-  note        String?       @db.VarChar(200)
-  
-  // Relations
-  route       Route         @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  id        String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  routeId   String         @map("route_id") @db.Uuid
+  latitude  Float
+  longitude Float
+  sequence  Int
+  pointType RoutePointType @default(WAYPOINT) @map("point_type")
+  note      String?        @db.VarChar(200)
+  route     Route          @relation(fields: [routeId], references: [id], onDelete: Cascade)
 
   @@index([routeId])
   @@map("route_points")
 }
 
 model RouteRating {
-  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  routeId     String    @map("route_id") @db.Uuid
-  userId      String    @map("user_id") @db.Uuid
-  
-  rating      Int       // 1-5
-  review      String?   @db.Text
-  
-  createdAt   DateTime  @default(now()) @map("created_at")
-
-  // Relations
-  route       Route     @relation(fields: [routeId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  routeId   String   @map("route_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  rating    Int
+  review    String?
+  createdAt DateTime @default(now()) @map("created_at")
+  route     Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([routeId, userId])
   @@index([routeId])
   @@map("route_ratings")
 }
 
+model Event {
+  id               String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizerId      String             @map("organizer_id") @db.Uuid
+  title            String             @db.VarChar(100)
+  description      String?
+  startTime        DateTime           @map("start_time")
+  endTime          DateTime?          @map("end_time")
+  meetingLatitude  Float              @map("meeting_latitude")
+  meetingLongitude Float              @map("meeting_longitude")
+  meetingAddress   String?            @map("meeting_address") @db.VarChar(200)
+  maxParticipants  Int?               @map("max_participants")
+  isPrivate        Boolean            @default(false) @map("is_private")
+  requiresApproval Boolean            @default(false) @map("requires_approval")
+  status           EventStatus        @default(DRAFT)
+  tags             String[]           @default([])
+  coverImage       String?            @map("cover_image")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+  participants     EventParticipant[]
+  eventRoutes      EventRoute[]
+  organizer        User               @relation("EventOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
+
+  @@index([organizerId])
+  @@index([startTime])
+  @@index([status])
+  @@map("events")
+}
+
+model EventParticipant {
+  id       String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  eventId  String            @map("event_id") @db.Uuid
+  userId   String            @map("user_id") @db.Uuid
+  status   ParticipantStatus @default(INTERESTED)
+  joinedAt DateTime          @default(now()) @map("joined_at")
+  event    Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+  @@map("event_participants")
+}
+
+model EventRoute {
+  id       String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  eventId  String @map("event_id") @db.Uuid
+  routeId  String @map("route_id") @db.Uuid
+  sequence Int    @default(0)
+  event    Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  route    Route  @relation(fields: [routeId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, routeId])
+  @@map("event_routes")
+}
+
+model Forum {
+  id          String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name        String      @db.VarChar(100)
+  description String?
+  slug        String      @unique @db.VarChar(100)
+  category    String      @db.VarChar(50)
+  icon        String?     @db.VarChar(50)
+  sortOrder   Int         @default(0) @map("sort_order")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  posts       ForumPost[]
+
+  @@index([category])
+  @@index([slug])
+  @@map("forums")
+}
+
+model ForumPost {
+  id        String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  forumId   String         @map("forum_id") @db.Uuid
+  authorId  String         @map("author_id") @db.Uuid
+  title     String         @db.VarChar(200)
+  content   String
+  tags      String[]       @default([])
+  viewCount Int            @default(0) @map("view_count")
+  likeCount Int            @default(0) @map("like_count")
+  isPinned  Boolean        @default(false) @map("is_pinned")
+  isLocked  Boolean        @default(false) @map("is_locked")
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+  comments  ForumComment[]
+  author    User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  forum     Forum          @relation(fields: [forumId], references: [id], onDelete: Cascade)
+
+  @@index([forumId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([isPinned])
+  @@map("forum_posts")
+}
+
+model ForumComment {
+  id        String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  postId    String         @map("post_id") @db.Uuid
+  authorId  String         @map("author_id") @db.Uuid
+  parentId  String?        @map("parent_id") @db.Uuid
+  content   String
+  likeCount Int            @default(0) @map("like_count")
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+  author    User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent    ForumComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   ForumComment[] @relation("CommentReplies")
+  post      ForumPost      @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([authorId])
+  @@index([parentId])
+  @@map("forum_comments")
+}
+
+model UserLocation {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  latitude  Float
+  longitude Float
+  heading   Float?
+  speed     Float?
+  accuracy  Float?
+  isActive  Boolean  @default(true) @map("is_active")
+  timestamp DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([timestamp])
+  @@index([isActive])
+  @@map("user_locations")
+}
+
+model PoliceReport {
+  id            String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  reporterId    String             @map("reporter_id") @db.Uuid
+  latitude      Float
+  longitude     Float
+  reportType    ReportType         @default(STATIONARY) @map("report_type")
+  description   String?            @db.VarChar(500)
+  confirmations Int                @default(0)
+  isActive      Boolean            @default(true) @map("is_active")
+  reportedAt    DateTime           @default(now()) @map("reported_at")
+  expiresAt     DateTime           @map("expires_at")
+  predictions   PolicePrediction[]
+  reporter      User               @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([reporterId])
+  @@index([isActive])
+  @@index([expiresAt])
+  @@map("police_reports")
+}
+
+model PolicePrediction {
+  id          String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  reportId    String?       @map("report_id") @db.Uuid
+  latitude    Float
+  longitude   Float
+  probability Float
+  timeWindow  String        @map("time_window") @db.VarChar(50)
+  factors     Json          @default("{}")
+  predictedAt DateTime      @default(now()) @map("predicted_at")
+  validUntil  DateTime      @map("valid_until")
+  report      PoliceReport? @relation(fields: [reportId], references: [id])
+
+  @@index([probability])
+  @@index([validUntil])
+  @@map("police_predictions")
+}
+
+model TrafficViolation {
+  id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  seqId           String?  @map("seq_id") @db.VarChar(100)
+  stopDate        DateTime @map("stop_date") @db.Date
+  stopTime        DateTime @map("stop_time") @db.Time(6)
+  agency          String?  @db.VarChar(50)
+  subAgency       String?  @map("sub_agency") @db.VarChar(100)
+  location        String?
+  latitude        Float
+  longitude       Float
+  description     String?
+  violationType   String?  @map("violation_type") @db.VarChar(50)
+  charge          String?  @db.VarChar(100)
+  article         String?  @db.VarChar(50)
+  vehicleType     String?  @map("vehicle_type") @db.VarChar(50)
+  vehicleYear     Int?     @map("vehicle_year")
+  vehicleMake     String?  @map("vehicle_make") @db.VarChar(50)
+  vehicleModel    String?  @map("vehicle_model") @db.VarChar(50)
+  vehicleColor    String?  @map("vehicle_color") @db.VarChar(30)
+  accident        Boolean  @default(false)
+  personalInjury  Boolean  @default(false) @map("personal_injury")
+  propertyDamage  Boolean  @default(false) @map("property_damage")
+  fatal           Boolean  @default(false)
+  alcohol         Boolean  @default(false)
+  workZone        Boolean  @default(false) @map("work_zone")
+  searchConducted Boolean  @default(false) @map("search_conducted")
+  arrestType      String?  @map("arrest_type") @db.VarChar(50)
+  driverState     String?  @map("driver_state") @db.VarChar(10)
+  isSpeedRelated  Boolean  @default(false) @map("is_speed_related")
+  recordedSpeed   Int?     @map("recorded_speed")
+  postedLimit     Int?     @map("posted_limit")
+  speedOver       Int?     @map("speed_over")
+  detectionMethod String?  @map("detection_method") @db.VarChar(20)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([stopDate])
+  @@index([stopTime])
+  @@index([subAgency])
+  @@index([latitude, longitude])
+  @@index([violationType])
+  @@index([alcohol])
+  @@index([accident])
+  @@index([isSpeedRelated])
+  @@index([recordedSpeed])
+  @@index([detectionMethod])
+  @@map("traffic_violations")
+}
+
+model ViolationHotspot {
+  id            String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  gridLat       Float    @map("grid_lat")
+  gridLng       Float    @map("grid_lng")
+  hourOfDay     Int      @map("hour_of_day")
+  dayOfWeek     Int      @map("day_of_week")
+  totalStops    Int      @map("total_stops")
+  alcoholStops  Int      @default(0) @map("alcohol_stops")
+  accidentStops Int      @default(0) @map("accident_stops")
+  probability   Float    @default(0)
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@unique([gridLat, gridLng, hourOfDay, dayOfWeek])
+  @@index([probability])
+  @@index([hourOfDay])
+  @@index([dayOfWeek])
+  @@map("violation_hotspots")
+}
+
+model CarSpotting {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  spotterId   String   @map("spotter_id") @db.Uuid
+  vehicleId   String?  @map("vehicle_id") @db.Uuid
+  latitude    Float
+  longitude   Float
+  make        String?  @db.VarChar(50)
+  model       String?  @db.VarChar(50)
+  color       String?  @db.VarChar(30)
+  year        Int?
+  photos      String[] @default([])
+  description String?  @db.VarChar(500)
+  spottedAt   DateTime @default(now()) @map("spotted_at")
+  spotter     User     @relation("Spotter", fields: [spotterId], references: [id], onDelete: Cascade)
+  vehicle     Vehicle? @relation(fields: [vehicleId], references: [id])
+
+  @@index([spotterId])
+  @@index([vehicleId])
+  @@index([spottedAt])
+  @@map("car_spottings")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model spatial_ref_sys {
+  srid      Int     @id
+  auth_name String? @db.VarChar(256)
+  auth_srid Int?
+  srtext    String? @db.VarChar(2048)
+  proj4text String? @db.VarChar(2048)
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  BLOCKED
+}
+
 enum RoutePointType {
   START
   END
   WAYPOINT
-  POI       // Point of Interest
+  POI
   REST_STOP
   GAS_STATION
   PHOTO_OP
@@ -249,81 +450,6 @@ enum Difficulty {
   MODERATE
   CHALLENGING
   EXPERT
-}
-
-// ============================================
-// EVENTS & MEETUPS
-// ============================================
-
-model Event {
-  id              String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizerId     String        @map("organizer_id") @db.Uuid
-  
-  title           String        @db.VarChar(100)
-  description     String?       @db.Text
-  
-  // Timing
-  startTime       DateTime      @map("start_time")
-  endTime         DateTime?     @map("end_time")
-  
-  // Meeting location
-  meetingLatitude   Float       @map("meeting_latitude")
-  meetingLongitude  Float       @map("meeting_longitude")
-  meetingAddress    String?     @map("meeting_address") @db.VarChar(200)
-  
-  // Event settings
-  maxParticipants Int?          @map("max_participants")
-  isPrivate       Boolean       @default(false) @map("is_private")
-  requiresApproval Boolean      @default(false) @map("requires_approval")
-  
-  status          EventStatus   @default(DRAFT)
-  tags            String[]      @default([])
-  coverImage      String?       @map("cover_image")
-  
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
-
-  // Relations
-  organizer       User          @relation("EventOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
-  participants    EventParticipant[]
-  eventRoutes     EventRoute[]
-
-  @@index([organizerId])
-  @@index([startTime])
-  @@index([status])
-  @@map("events")
-}
-
-model EventParticipant {
-  id          String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  eventId     String            @map("event_id") @db.Uuid
-  userId      String            @map("user_id") @db.Uuid
-  
-  status      ParticipantStatus @default(INTERESTED)
-  joinedAt    DateTime          @default(now()) @map("joined_at")
-
-  // Relations
-  event       Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([eventId, userId])
-  @@index([eventId])
-  @@index([userId])
-  @@map("event_participants")
-}
-
-model EventRoute {
-  id        String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  eventId   String  @map("event_id") @db.Uuid
-  routeId   String  @map("route_id") @db.Uuid
-  sequence  Int     @default(0)
-
-  // Relations
-  event     Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  route     Route   @relation(fields: [routeId], references: [id], onDelete: Cascade)
-
-  @@unique([eventId, routeId])
-  @@map("event_routes")
 }
 
 enum EventStatus {
@@ -340,297 +466,10 @@ enum ParticipantStatus {
   DECLINED
 }
 
-// ============================================
-// FORUMS & COMMUNITY
-// ============================================
-
-model Forum {
-  id          String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  name        String      @db.VarChar(100)
-  description String?     @db.Text
-  slug        String      @unique @db.VarChar(100)
-  category    String      @db.VarChar(50)
-  icon        String?     @db.VarChar(50)
-  sortOrder   Int         @default(0) @map("sort_order")
-  
-  createdAt   DateTime    @default(now()) @map("created_at")
-
-  // Relations
-  posts       ForumPost[]
-
-  @@index([category])
-  @@index([slug])
-  @@map("forums")
-}
-
-model ForumPost {
-  id          String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  forumId     String        @map("forum_id") @db.Uuid
-  authorId    String        @map("author_id") @db.Uuid
-  
-  title       String        @db.VarChar(200)
-  content     String        @db.Text
-  tags        String[]      @default([])
-  
-  viewCount   Int           @default(0) @map("view_count")
-  likeCount   Int           @default(0) @map("like_count")
-  
-  isPinned    Boolean       @default(false) @map("is_pinned")
-  isLocked    Boolean       @default(false) @map("is_locked")
-  
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
-
-  // Relations
-  forum       Forum         @relation(fields: [forumId], references: [id], onDelete: Cascade)
-  author      User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  comments    ForumComment[]
-
-  @@index([forumId])
-  @@index([authorId])
-  @@index([createdAt])
-  @@index([isPinned])
-  @@map("forum_posts")
-}
-
-model ForumComment {
-  id          String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  postId      String        @map("post_id") @db.Uuid
-  authorId    String        @map("author_id") @db.Uuid
-  parentId    String?       @map("parent_id") @db.Uuid
-  
-  content     String        @db.Text
-  likeCount   Int           @default(0) @map("like_count")
-  
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
-
-  // Relations
-  post        ForumPost     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author      User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  parent      ForumComment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies     ForumComment[] @relation("CommentReplies")
-
-  @@index([postId])
-  @@index([authorId])
-  @@index([parentId])
-  @@map("forum_comments")
-}
-
-// ============================================
-// REAL-TIME LOCATION & ALERTS
-// ============================================
-
-model UserLocation {
-  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  userId      String    @map("user_id") @db.Uuid
-  
-  latitude    Float
-  longitude   Float
-  heading     Float?    // Direction in degrees
-  speed       Float?    // Speed in mph
-  accuracy    Float?    // GPS accuracy in meters
-  
-  isActive    Boolean   @default(true) @map("is_active")
-  timestamp   DateTime  @default(now())
-
-  // Relations
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([timestamp])
-  @@index([isActive])
-  @@map("user_locations")
-}
-
-model PoliceReport {
-  id            String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  reporterId    String        @map("reporter_id") @db.Uuid
-  
-  latitude      Float
-  longitude     Float
-  
-  reportType    ReportType    @default(STATIONARY) @map("report_type")
-  description   String?       @db.VarChar(500)
-  
-  confirmations Int           @default(0)
-  isActive      Boolean       @default(true) @map("is_active")
-  
-  reportedAt    DateTime      @default(now()) @map("reported_at")
-  expiresAt     DateTime      @map("expires_at")
-
-  // Relations
-  reporter      User          @relation(fields: [reporterId], references: [id], onDelete: Cascade)
-  predictions   PolicePrediction[]
-
-  @@index([reporterId])
-  @@index([isActive])
-  @@index([expiresAt])
-  @@map("police_reports")
-}
-
-model PolicePrediction {
-  id            String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  reportId      String?       @map("report_id") @db.Uuid
-  
-  latitude      Float
-  longitude     Float
-  probability   Float         // 0.0 to 1.0
-  timeWindow    String        @map("time_window") @db.VarChar(50) // e.g., "Morning Rush", "Weekend Night"
-  
-  // ML model factors
-  factors       Json          @default("{}")
-  
-  predictedAt   DateTime      @default(now()) @map("predicted_at")
-  validUntil    DateTime      @map("valid_until")
-
-  // Relations
-  report        PoliceReport? @relation(fields: [reportId], references: [id], onDelete: SetNull)
-
-  @@index([probability])
-  @@index([validUntil])
-  @@map("police_predictions")
-}
-
 enum ReportType {
-  STATIONARY    // Parked police car
-  MOBILE        // Patrol car
-  SPEED_TRAP    // Speed trap
-  CHECKPOINT    // Checkpoint/roadblock
-  ACCIDENT      // Accident scene with police
-}
-
-// ============================================
-// TRAFFIC VIOLATIONS (Historical Data Analytics)
-// ============================================
-
-model TrafficViolation {
-  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  seqId           String?   @map("seq_id") @db.VarChar(100) // Original CSV ID
-  
-  // Time data
-  stopDate        DateTime  @map("stop_date") @db.Date
-  stopTime        DateTime  @map("stop_time") @db.Time
-  
-  // Location data
-  agency          String?   @db.VarChar(50)
-  subAgency       String?   @map("sub_agency") @db.VarChar(100)
-  location        String?   @db.Text
-  latitude        Float
-  longitude       Float
-  
-  // Violation details
-  description     String?   @db.Text
-  violationType   String?   @map("violation_type") @db.VarChar(50)
-  charge          String?   @db.VarChar(100)
-  article         String?   @db.VarChar(50)
-  
-  // Vehicle info
-  vehicleType     String?   @map("vehicle_type") @db.VarChar(50)
-  vehicleYear     Int?      @map("vehicle_year")
-  vehicleMake     String?   @map("vehicle_make") @db.VarChar(50)
-  vehicleModel    String?   @map("vehicle_model") @db.VarChar(50)
-  vehicleColor    String?   @map("vehicle_color") @db.VarChar(30)
-  
-  // Incident flags
-  accident        Boolean   @default(false)
-  personalInjury  Boolean   @default(false) @map("personal_injury")
-  propertyDamage  Boolean   @default(false) @map("property_damage")
-  fatal           Boolean   @default(false)
-  alcohol         Boolean   @default(false)
-  workZone        Boolean   @default(false) @map("work_zone")
-  
-  // Search info
-  searchConducted Boolean   @default(false) @map("search_conducted")
-  
-  // Arrest info
-  arrestType      String?   @map("arrest_type") @db.VarChar(50)
-  
-  // Demographics (for pattern analysis)
-  driverState     String?   @map("driver_state") @db.VarChar(10)
-  
-  // Speed violation analysis (computed from description/charge)
-  isSpeedRelated    Boolean   @default(false) @map("is_speed_related")
-  recordedSpeed     Int?      @map("recorded_speed")  // Parsed from description (e.g., 84 in "84 MPH")
-  postedLimit       Int?      @map("posted_limit")    // Parsed from description (e.g., 55 in "55 MPH ZONE")
-  speedOver         Int?      @map("speed_over")      // Calculated: recordedSpeed - postedLimit
-  detectionMethod   String?   @map("detection_method") @db.VarChar(20) // Normalized: radar, laser, vascar, patrol
-  
-  // Metadata
-  createdAt       DateTime  @default(now()) @map("created_at")
-
-  @@index([stopDate])
-  @@index([stopTime])
-  @@index([subAgency])
-  @@index([latitude, longitude])
-  @@index([violationType])
-  @@index([alcohol])
-  @@index([accident])
-  @@index([isSpeedRelated])
-  @@index([recordedSpeed])
-  @@index([detectionMethod])
-  @@map("traffic_violations")
-}
-
-// Aggregated stats for faster queries
-model ViolationHotspot {
-  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  
-  // Grid cell (rounded lat/lng for clustering)
-  gridLat         Float     @map("grid_lat")
-  gridLng         Float     @map("grid_lng")
-  
-  // Time bucket
-  hourOfDay       Int       @map("hour_of_day") // 0-23
-  dayOfWeek       Int       @map("day_of_week") // 0-6 (Sunday = 0)
-  
-  // Aggregated counts
-  totalStops      Int       @map("total_stops")
-  alcoholStops    Int       @default(0) @map("alcohol_stops")
-  accidentStops   Int       @default(0) @map("accident_stops")
-  
-  // Calculated probability score
-  probability     Float     @default(0) // 0.0 to 1.0
-  
-  // Last updated
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-
-  @@unique([gridLat, gridLng, hourOfDay, dayOfWeek])
-  @@index([probability])
-  @@index([hourOfDay])
-  @@index([dayOfWeek])
-  @@map("violation_hotspots")
-}
-
-// ============================================
-// CAR SPOTTING
-// ============================================
-
-model CarSpotting {
-  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  spotterId   String    @map("spotter_id") @db.Uuid
-  vehicleId   String?   @map("vehicle_id") @db.Uuid // If spotted car is registered
-  
-  latitude    Float
-  longitude   Float
-  
-  // If vehicle not registered, store details
-  make        String?   @db.VarChar(50)
-  model       String?   @db.VarChar(50)
-  color       String?   @db.VarChar(30)
-  year        Int?
-  
-  photos      String[]  @default([])
-  description String?   @db.VarChar(500)
-  
-  spottedAt   DateTime  @default(now()) @map("spotted_at")
-
-  // Relations
-  spotter     User      @relation("Spotter", fields: [spotterId], references: [id], onDelete: Cascade)
-  vehicle     Vehicle?  @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
-
-  @@index([spotterId])
-  @@index([vehicleId])
-  @@index([spottedAt])
-  @@map("car_spottings")
+  STATIONARY
+  MOBILE
+  SPEED_TRAP
+  CHECKPOINT
+  ACCIDENT
 }

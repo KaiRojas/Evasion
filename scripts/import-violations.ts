@@ -68,30 +68,30 @@ function parseBoolean(value: string): boolean {
 
 function parseDate(dateStr: string): Date | null {
   if (!dateStr) return null;
-  
+
   // Format: M/D/YYYY
   const parts = dateStr.split('/');
   if (parts.length !== 3) return null;
-  
+
   const month = parseInt(parts[0], 10) - 1;
   const day = parseInt(parts[1], 10);
   const year = parseInt(parts[2], 10);
-  
+
   const date = new Date(year, month, day);
   return isNaN(date.getTime()) ? null : date;
 }
 
 function parseTime(timeStr: string): Date | null {
   if (!timeStr) return null;
-  
+
   // Format: HH:MM:SS
   const parts = timeStr.split(':');
   if (parts.length < 2) return null;
-  
+
   const hours = parseInt(parts[0], 10);
   const minutes = parseInt(parts[1], 10);
   const seconds = parts[2] ? parseInt(parts[2], 10) : 0;
-  
+
   // Create a date with just time (date part doesn't matter for TIME type)
   const date = new Date(1970, 0, 1, hours, minutes, seconds);
   return isNaN(date.getTime()) ? null : date;
@@ -100,19 +100,19 @@ function parseTime(timeStr: string): Date | null {
 function transformRow(row: CSVRow) {
   const lat = parseFloat(row.Latitude);
   const lng = parseFloat(row.Longitude);
-  
+
   // Skip invalid coordinates
   if (SKIP_INVALID_COORDS && (lat === 0 || lng === 0 || isNaN(lat) || isNaN(lng))) {
     return null;
   }
-  
+
   const stopDate = parseDate(row['Date Of Stop']);
   const stopTime = parseTime(row['Time Of Stop']);
-  
+
   if (!stopDate || !stopTime) {
     return null;
   }
-  
+
   return {
     seqId: row.SeqID || null,
     stopDate,
@@ -146,14 +146,19 @@ function transformRow(row: CSVRow) {
 async function importViolations() {
   console.log('🚀 Starting traffic violations import...');
   console.log(`📁 Reading from: ${CSV_PATH}`);
-  
+
+  // Clear existing data
+  console.log('🧹 Clearing existing traffic violations...');
+  await prisma.trafficViolation.deleteMany();
+  console.log('✅ Table cleared.');
+
   let totalProcessed = 0;
   let totalInserted = 0;
   let totalSkipped = 0;
   let batch: ReturnType<typeof transformRow>[] = [];
-  
+
   const startTime = Date.now();
-  
+
   // Create readable stream with CSV parser
   const parser = createReadStream(CSV_PATH)
     .pipe(parse({
@@ -164,15 +169,16 @@ async function importViolations() {
 
   for await (const row of parser) {
     totalProcessed++;
-    
+    if (totalProcessed % 100 === 0) console.log(`Processing row ${totalProcessed}...`);
+
     const transformed = transformRow(row as CSVRow);
-    
+
     if (transformed) {
       batch.push(transformed);
     } else {
       totalSkipped++;
     }
-    
+
     // Insert batch when full
     if (batch.length >= BATCH_SIZE) {
       try {
@@ -184,9 +190,9 @@ async function importViolations() {
       } catch (error) {
         console.error(`❌ Error inserting batch at row ${totalProcessed}:`, error);
       }
-      
+
       batch = [];
-      
+
       // Progress update every 10,000 rows
       if (totalProcessed % 10000 === 0) {
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -195,7 +201,7 @@ async function importViolations() {
       }
     }
   }
-  
+
   // Insert remaining batch
   if (batch.length > 0) {
     try {
@@ -208,15 +214,15 @@ async function importViolations() {
       console.error('❌ Error inserting final batch:', error);
     }
   }
-  
+
   const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
-  
+
   console.log('\n✅ Import complete!');
   console.log(`📊 Total processed: ${totalProcessed.toLocaleString()}`);
   console.log(`✅ Total inserted: ${totalInserted.toLocaleString()}`);
   console.log(`⏭️  Total skipped: ${totalSkipped.toLocaleString()}`);
   console.log(`⏱️  Total time: ${totalTime}s`);
-  
+
   // Generate hotspots after import
   console.log('\n🔥 Generating hotspot aggregations...');
   await generateHotspots();
@@ -225,7 +231,7 @@ async function importViolations() {
 async function generateHotspots() {
   // Clear existing hotspots
   await prisma.violationHotspot.deleteMany();
-  
+
   // Aggregate by grid cell (0.01 degree ≈ 1.1km) and time
   const result = await prisma.$queryRaw<Array<{
     grid_lat: number;
@@ -248,10 +254,10 @@ async function generateHotspots() {
     GROUP BY grid_lat, grid_lng, hour_of_day, day_of_week
     HAVING COUNT(*) >= 5
   `;
-  
+
   // Calculate max for normalization
   const maxStops = Math.max(...result.map(r => Number(r.total_stops)));
-  
+
   // Insert hotspots in batches
   const hotspots = result.map(r => ({
     gridLat: r.grid_lat,
@@ -263,13 +269,13 @@ async function generateHotspots() {
     accidentStops: Number(r.accident_stops),
     probability: Number(r.total_stops) / maxStops, // Normalize to 0-1
   }));
-  
+
   // Insert in batches
   for (let i = 0; i < hotspots.length; i += 1000) {
     const batch = hotspots.slice(i, i + 1000);
     await prisma.violationHotspot.createMany({ data: batch });
   }
-  
+
   console.log(`✅ Generated ${hotspots.length.toLocaleString()} hotspot records`);
 }
 

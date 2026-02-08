@@ -35,12 +35,27 @@ function HomeContent() {
             {/* Greeting */}
             <div className="px-4 pt-6 pb-4">
                 <h2 className="text-[#F5F5F4] text-3xl font-bold tracking-tight">
-                    Hey, {userName || 'there'}
+                    {(() => {
+                        const hour = new Date().getHours();
+                        if (isGuest) return "Hey, Guest";
+
+                        // Dev/User Greeting (Julian)
+                        const name = userName || "Julian";
+
+                        if (hour >= 6 && hour < 12) return `Good morning, ${name}`;
+                        if (hour >= 12 && hour < 18) return `Good afternoon, ${name}`;
+                        return `Good evening, ${name}`;
+                    })()}
                 </h2>
                 <p className="text-[#A8A8A8] text-sm mt-1">
                     {isGuest
                         ? 'Sign up to save your drives!'
-                        : 'Ready for another run tonight?'
+                        : (() => {
+                            const hour = new Date().getHours();
+                            if (hour >= 6 && hour < 12) return "Ready to hit the road?";
+                            if (hour >= 12 && hour < 18) return "Perfect time for a drive.";
+                            return "The streets are calling.";
+                        })()
                     }
                 </p>
             </div>

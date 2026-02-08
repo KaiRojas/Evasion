@@ -9,7 +9,7 @@ import {
     DetectionMethodBreakdown
 } from '@/components/analytics';
 import { PatternDiscovery, AnomalyList } from '@/components/insights';
-import { BaseMap, LeafletPoliceStops } from '@/components/map';
+import { BaseMap, PoliceStopsLayer } from '@/components/map';
 import {
     Activity,
     Car,
@@ -51,17 +51,37 @@ export default function AnalyticsPage() {
     const [dailyData, setDailyData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [selectedPoint, setSelectedPoint] = useState<any>(null);
+
+    // UI State
+    const [timeRange, setTimeRange] = useState('24h');
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [expandedChart, setExpandedChart] = useState<string | null>(null);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
         setError(null);
 
+        // Calculate date range
+        const now = new Date();
+        let startDate: Date | null = new Date();
+
+        switch (timeRange) {
+            case '1h': startDate.setHours(now.getHours() - 1); break;
+            case '24h': startDate.setHours(now.getHours() - 24); break;
+            case '7d': startDate.setDate(now.getDate() - 7); break;
+            case '30d': startDate.setDate(now.getDate() - 30); break;
+            case 'all': startDate = null; break;
+            default: startDate.setHours(now.getHours() - 24);
+        }
+
+        const queryParams = new URLSearchParams();
+        if (startDate) queryParams.append('startDate', startDate.toISOString());
+
         try {
             const [statsRes, hourlyRes, dailyRes] = await Promise.all([
-                fetch('/api/analytics/stats'),
-                fetch('/api/analytics/time-patterns?groupBy=hour'),
-                fetch('/api/analytics/time-patterns?groupBy=day')
+                fetch(`/api/analytics/stats?${queryParams}`),
+                fetch(`/api/analytics/time-patterns?groupBy=hour&${queryParams}`),
+                fetch(`/api/analytics/time-patterns?groupBy=day&${queryParams}`)
             ]);
 
             if (statsRes.ok) {
@@ -84,13 +104,21 @@ export default function AnalyticsPage() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [timeRange]);
 
     useEffect(() => {
         fetchData();
     }, [fetchData]);
 
-    if (loading) {
+    const timeOptions = [
+        { id: '1h', label: 'Live (1h)' },
+        { id: '24h', label: 'Last 24 Hours' },
+        { id: '7d', label: 'Last 7 Days' },
+        { id: '30d', label: 'Last 30 Days' },
+        { id: 'all', label: 'All Time' },
+    ];
+
+    if (loading && !stats) { // Only full screen load on initial
         return (
             <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
                 <div className="w-10 h-10 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin" />
@@ -100,7 +128,7 @@ export default function AnalyticsPage() {
     }
 
     return (
-        <div className="flex flex-col min-h-screen bg-[#030205] pb-32">
+        <div className="flex flex-col min-h-screen bg-[#030205] pb-32 relative">
             {/* Header Section */}
             <div className="px-6 pt-6 mb-6">
                 <div className="flex items-center justify-between mb-2">
@@ -120,8 +148,9 @@ export default function AnalyticsPage() {
                 </p>
             </div>
 
-            {/* Custom Tab Switcher */}
-            <div className="px-6 mb-6">
+            {/* Controls Section */}
+            <div className="px-6 mb-6 space-y-4">
+                {/* Tabs */}
                 <div className="flex p-1 bg-zinc-900/50 backdrop-blur-xl border border-zinc-800/50 rounded-full">
                     {[
                         { id: 'overview', label: 'Overview', icon: BarChart3 },
@@ -143,20 +172,68 @@ export default function AnalyticsPage() {
                         </button>
                     ))}
                 </div>
+
+                {/* Filters Row */}
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-zinc-400">
+                        <MapIcon className="w-3 h-3" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest">
+                            Context: <span className="text-white">Maryland</span>
+                        </span>
+                    </div>
+
+                    {/* Time Dropdown */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg hover:border-[#8B5CF6]/50 transition-colors"
+                        >
+                            <Clock className="w-3 h-3 text-[#8B5CF6]" />
+                            <span className="text-[10px] font-bold text-white uppercase tracking-wider">
+                                {timeOptions.find(o => o.id === timeRange)?.label}
+                            </span>
+                            <ChevronRight className={cn("w-3 h-3 text-zinc-500 transition-transform", isDropdownOpen && "rotate-90")} />
+                        </button>
+
+                        {isDropdownOpen && (
+                            <>
+                                <div className="fixed inset-0 z-10" onClick={() => setIsDropdownOpen(false)} />
+                                <div className="absolute right-0 top-full mt-2 w-40 bg-[#0D0B14] border border-zinc-800 rounded-xl shadow-xl z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                    {timeOptions.map((opt) => (
+                                        <button
+                                            key={opt.id}
+                                            onClick={() => {
+                                                setTimeRange(opt.id);
+                                                setIsDropdownOpen(false);
+                                            }}
+                                            className={cn(
+                                                "w-full text-left px-4 py-2 text-[10px] font-bold uppercase tracking-wider hover:bg-zinc-900 transition-colors",
+                                                timeRange === opt.id ? "text-[#8B5CF6] bg-[#8B5CF6]/5" : "text-zinc-400"
+                                            )}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
             </div>
 
             {/* Content Area */}
-            <div className="px-6">
+            <div className={cn("px-6 transition-opacity duration-300", loading ? "opacity-50 pointer-events-none" : "opacity-100")}>
+
                 {activeTab === 'overview' && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                        {/* Stats Summary Grid */}
+                        {/* Summary Cards */}
                         <div className="grid grid-cols-2 gap-2">
                             <StatsCard
                                 title="Total Activity"
                                 value={stats?.overview?.totalStops || 0}
                                 icon={<Activity className="w-4 h-4" />}
                                 color="purple"
-                                className="bg-zinc-900/40 border-zinc-800/50"
+                                className="bg-zinc-900/40 border-zinc-800/50 cursor-pointer hover:bg-zinc-900/60"
                             />
                             <StatsCard
                                 title="Alcohol Related"
@@ -183,36 +260,40 @@ export default function AnalyticsPage() {
                             />
                         </div>
 
-
-                        {/* Analysis Grid */}
-                        <div className="grid grid-cols-1 gap-4">
-                            {/* Detection Method Breakdown */}
-                            <DetectionMethodBreakdown
-                                data={stats?.detectionMethods || []}
-                            />
-
-                            {/* Temporal Patterns */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <TimeChart
-                                    data={hourlyData}
-                                    title="Speed stops by hour"
-                                />
-                                <TimeChart
-                                    data={dailyData}
-                                    title="Speed stops by day"
-                                />
+                        {/* Analysis Breakdown */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-xs font-black uppercase italic tracking-wider text-[#F5F5F4]">
+                                    Analysis Breakdown (Tap to Expand)
+                                </h3>
                             </div>
 
-                            {/* Tactical Lists */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <TopList
-                                    title="Top Speed Enforcement Areas"
-                                    items={stats?.topLocations || []}
+                            <button onClick={() => setExpandedChart('temporal')} className="w-full text-left group transition-transform active:scale-[0.99]">
+                                <TimeChart
+                                    data={hourlyData}
+                                    title="Hourly Volume"
                                 />
+                            </button>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <button onClick={() => setExpandedChart('locations')} className="text-left group transition-transform active:scale-[0.99]">
+                                    <TopList
+                                        title="Top Locations"
+                                        items={stats?.topLocations || []}
+                                    />
+                                </button>
+                                <button onClick={() => setExpandedChart('methods')} className="text-left group transition-transform active:scale-[0.99]">
+                                    <DetectionMethodBreakdown
+                                        data={stats?.detectionMethods || []}
+                                    />
+                                </button>
+                            </div>
+
+                            <button onClick={() => setExpandedChart('vehicles')} className="w-full text-left group transition-transform active:scale-[0.99]">
                                 <VehicleDistribution
                                     data={stats?.vehicleMakes || []}
                                 />
-                            </div>
+                            </button>
                         </div>
                     </div>
                 )}
@@ -221,14 +302,13 @@ export default function AnalyticsPage() {
                     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
                         <div className="relative h-[450px] rounded-3xl overflow-hidden border border-zinc-800/50 shadow-2xl">
                             <BaseMap
-                                initialCenter={[-77.0365, 38.8977]} // Example: DC area
+                                initialCenter={[-77.0365, 38.8977]}
                                 initialZoom={11}
                             >
-                                <LeafletPoliceStops
+                                <PoliceStopsLayer
                                     onStopClick={(props) => console.log('Stop clicked:', props)}
                                 />
                             </BaseMap>
-
                             {/* Map Legend/Overlay */}
                             <div className="absolute bottom-4 left-4 right-4 p-3 bg-[#030205]/80 backdrop-blur-md border border-white/10 rounded-xl z-[1000]">
                                 <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-widest text-[#A8A8A8]">
@@ -246,11 +326,6 @@ export default function AnalyticsPage() {
                                     </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <div className="p-4 bg-zinc-900/40 border border-zinc-800/50 rounded-2xl">
-                            <h3 className="text-xs font-black uppercase italic tracking-wider text-[#F5F5F4] mb-4">Temporal Heatmap</h3>
-                            <TimeChart data={hourlyData} title="Hourly Enforcement Intensity" />
                         </div>
                     </div>
                 )}
@@ -271,16 +346,57 @@ export default function AnalyticsPage() {
                             <h3 className="text-xs font-black uppercase italic tracking-[0.2em] text-[#8B5CF6] mb-4">Statistical Anomalies</h3>
                             <AnomalyList />
                         </div>
-
-                        {/* Risk Assessment Footer */}
-                        <div className="p-6 bg-[#8B5CF6]/5 border border-[#8B5CF6]/20 rounded-3xl border-dashed">
-                            <p className="text-xs text-center text-[#A8A8A8] leading-relaxed">
-                                Our ML engine analyzes historical clusters to predict high-probability enforcement windows. Cross-reference these insights with the <span className="text-[#8B5CF6] font-bold">Intelligence Map</span> for tactical navigation.
-                            </p>
-                        </div>
                     </div>
                 )}
             </div>
+
+            {/* Expanded Chart Overlay */}
+            {expandedChart && (
+                <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="w-full max-w-2xl bg-[#18181B] border border-zinc-800 rounded-3xl p-6 relative shadow-2xl overflow-y-auto max-h-[90vh]">
+                        <button
+                            onClick={() => setExpandedChart(null)}
+                            className="absolute top-4 right-4 p-2 bg-zinc-800 rounded-full text-white hover:bg-zinc-700 transition-colors z-10"
+                        >
+                            <ChevronRight className="w-5 h-5 rotate-180" />
+                        </button>
+
+                        <h3 className="text-xl font-black italic tracking-tight text-white mb-8 border-b border-zinc-800 pb-4">
+                            DETAILED ANALYSIS
+                        </h3>
+
+                        <div className="min-h-[300px]">
+                            {expandedChart === 'temporal' && (
+                                <TimeChart data={hourlyData} title="Hourly Enforcement Intensity" />
+                            )}
+
+                            {expandedChart === 'locations' && (
+                                <TopList
+                                    title="Top Locations (Detailed)"
+                                    items={stats?.topLocations || []}
+                                />
+                            )}
+
+                            {expandedChart === 'methods' && (
+                                <DetectionMethodBreakdown
+                                    data={stats?.detectionMethods || []}
+                                />
+                            )}
+
+                            {expandedChart === 'vehicles' && (
+                                <VehicleDistribution
+                                    data={stats?.vehicleMakes || []}
+                                />
+                            )}
+                        </div>
+
+                        <div className="mt-8 pt-4 border-t border-zinc-800 flex justify-between items-center text-xs text-zinc-500">
+                            <span>Viewing data for: {timeOptions.find(o => o.id === timeRange)?.label}</span>
+                            <span>Source: Maryland State Police</span>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

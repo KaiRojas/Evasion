@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { MapProvider, BaseMap, RouteLayer } from '@/components/map';
+import Link from 'next/link';
 
 // Define a unified Route interface
 interface Route {
@@ -18,6 +19,21 @@ interface Route {
 
 // Mock data for routes
 const DISCOVER_ROUTES: Route[] = [
+    {
+        id: 'cannonball',
+        name: 'Cannonball Run',
+        distance: '2,800 mi',
+        duration: '28h 30m',
+        rating: 4.9,
+        author: 'Cannonball Club',
+        image: 'https://images.unsplash.com/photo-1465447142348-e9952c393450?q=80&w=2070&auto=format&fit=crop',
+        coordinates: [
+            [-74.012, 40.706],   // NYC
+            [-95.3698, 29.7604], // Houston
+            [-112.0740, 33.4484], // Phoenix
+            [-118.2437, 34.0522] // Los Angeles
+        ]
+    },
     {
         id: 'r1',
         name: 'Mulholland Drive',
@@ -69,13 +85,10 @@ type Tab = 'discover' | 'my-routes' | 'history';
 
 export default function RoutesPage() {
     const [activeTab, setActiveTab] = useState<Tab>('discover');
-    const [selectedRoute, setSelectedRoute] = useState<string | null>(null);
 
     const routes = activeTab === 'discover' ? DISCOVER_ROUTES
         : activeTab === 'my-routes' ? MY_ROUTES
             : HISTORY_ROUTES;
-
-    const activeRouteData = routes.find(r => r.id === selectedRoute);
 
     return (
         <div className="flex flex-col min-h-screen pb-24 bg-[#06040A]">
@@ -130,9 +143,9 @@ export default function RoutesPage() {
                                     key={route.id}
                                     id={route.id}
                                     coordinates={route.coordinates}
-                                    color={selectedRoute === route.id ? '#8B5CF6' : '#52525B'}
-                                    width={selectedRoute === route.id ? 6 : 4}
-                                    opacity={selectedRoute === route.id ? 1 : 0.6}
+                                    color='#8B5CF6'
+                                    width={4}
+                                    opacity={0.8}
                                 />
                             ))}
                         </BaseMap>
@@ -142,81 +155,41 @@ export default function RoutesPage() {
 
             {/* Routes List */}
             <div className="flex-1 px-4 overflow-y-auto hide-scrollbar">
-                {/* Selected Route Quick Stats Overlay */}
-                {activeRouteData && (
-                    <div className="mb-4 bg-[#0D0B14]/90 backdrop-blur-xl border border-[#8B5CF6]/30 rounded-2xl p-4 animate-slide-up shadow-xl shadow-black/50">
-                        <div className="flex justify-between items-start mb-3">
-                            <div>
-                                <h3 className="text-lg font-bold text-white leading-none">{activeRouteData.name}</h3>
-                                <p className="text-xs text-[#A8A8A8] mt-1">by {activeRouteData.author || 'You'}</p>
+                <div className="flex flex-col gap-3 pb-4">
+                    {routes.map(route => (
+                        <Link
+                            key={route.id}
+                            href={`/drives/${route.name.toLowerCase().replace(/\s+/g, '-')}`}
+                            className="bg-[#0D0B14]/80 backdrop-blur-md border border-white/5 p-3 rounded-xl flex gap-3 hover:border-[#8B5CF6]/30 transition-all cursor-pointer active:scale-[0.98]"
+                        >
+                            <div className="w-16 h-16 rounded-lg overflow-hidden bg-white/5 flex-shrink-0">
+                                <img src={route.image} alt={route.name} className="w-full h-full object-cover" />
                             </div>
-                            <button
-                                onClick={() => setSelectedRoute(null)}
-                                className="p-1 hover:bg-white/10 rounded-full"
-                            >
-                                <span className="material-symbols-outlined text-[#A8A8A8]">close</span>
-                            </button>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-2 mb-4">
-                            <div className="bg-[#18181B]/50 rounded-lg p-2 flex flex-col items-center">
-                                <span className="material-symbols-outlined text-[#8B5CF6] text-lg mb-1">straighten</span>
-                                <span className="text-sm font-bold text-white">{activeRouteData.distance}</span>
-                            </div>
-                            <div className="bg-[#18181B]/50 rounded-lg p-2 flex flex-col items-center">
-                                <span className="material-symbols-outlined text-[#8B5CF6] text-lg mb-1">timer</span>
-                                <span className="text-sm font-bold text-white">{activeRouteData.duration}</span>
-                            </div>
-                            <div className="bg-[#18181B]/50 rounded-lg p-2 flex flex-col items-center">
-                                <span className="material-symbols-outlined text-[#8B5CF6] text-lg mb-1">star</span>
-                                <span className="text-sm font-bold text-white">{activeRouteData.rating || '-'}</span>
-                            </div>
-                        </div>
-
-                        <button className="w-full py-3 bg-[#EF4444] hover:bg-[#DC2626] text-white font-bold rounded-xl uppercase tracking-wider shadow-lg shadow-red-500/20 transition-all active:scale-[0.98]">
-                            Start Drive
-                        </button>
-                    </div>
-                )}
-
-                {/* List View */}
-                {!selectedRoute && (
-                    <div className="flex flex-col gap-3 pb-4">
-                        {routes.map(route => (
-                            <div
-                                key={route.id}
-                                onClick={() => setSelectedRoute(route.id)}
-                                className="bg-[#0D0B14]/80 backdrop-blur-md border border-white/5 p-3 rounded-xl flex gap-3 hover:border-[#8B5CF6]/30 transition-all cursor-pointer active:scale-[0.98]"
-                            >
-                                <div className="w-16 h-16 rounded-lg overflow-hidden bg-white/5 flex-shrink-0">
-                                    <img src={route.image} alt={route.name} className="w-full h-full object-cover" />
-                                </div>
-                                <div className="flex-1 flex flex-col justify-center">
-                                    <h3 className="font-bold text-sm text-[#F5F5F4]">{route.name}</h3>
-                                    <div className="flex items-center gap-3 mt-2">
-                                        <div className="flex items-center gap-1">
-                                            <span className="material-symbols-outlined text-[#A8A8A8] text-xs">straighten</span>
-                                            <span className="text-[#A8A8A8] text-xs font-medium">{route.distance}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <span className="material-symbols-outlined text-[#A8A8A8] text-xs">timer</span>
-                                            <span className="text-[#A8A8A8] text-xs font-medium">{route.duration}</span>
-                                        </div>
+                            <div className="flex-1 flex flex-col justify-center">
+                                <h3 className="font-bold text-sm text-[#F5F5F4]">{route.name}</h3>
+                                <div className="flex items-center gap-3 mt-2">
+                                    <div className="flex items-center gap-1">
+                                        <span className="material-symbols-outlined text-[#A8A8A8] text-xs">straighten</span>
+                                        <span className="text-[#A8A8A8] text-xs font-medium">{route.distance}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <span className="material-symbols-outlined text-[#A8A8A8] text-xs">timer</span>
+                                        <span className="text-[#A8A8A8] text-xs font-medium">{route.duration}</span>
                                     </div>
                                 </div>
-                                <div className="flex flex-col justify-between items-end py-1">
-                                    {route.rating && (
-                                        <div className="flex items-center gap-0.5 bg-[#8B5CF6]/10 px-1.5 py-0.5 rounded text-xs">
-                                            <span className="material-symbols-outlined text-[#8B5CF6] text-[10px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                                            <span className="text-[#8B5CF6] text-[10px] font-bold">{route.rating}</span>
-                                        </div>
-                                    )}
-                                    <span className="material-symbols-outlined text-[#A8A8A8]">chevron_right</span>
-                                </div>
                             </div>
-                        ))}
-                    </div>
-                )}
+                            <div className="flex flex-col justify-between items-end py-1">
+                                {route.rating && (
+                                    <div className="flex items-center gap-0.5 bg-[#8B5CF6]/10 px-1.5 py-0.5 rounded text-xs">
+                                        <span className="material-symbols-outlined text-[#8B5CF6] text-[10px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                                        <span className="text-[#8B5CF6] text-[10px] font-bold">{route.rating}</span>
+                                    </div>
+                                )}
+                                <span className="material-symbols-outlined text-[#A8A8A8]">chevron_right</span>
+                            </div>
+                        </Link>
+                    ))}
+                </div>
             </div>
 
             <style jsx>{`
