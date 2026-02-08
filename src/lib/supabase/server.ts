@@ -9,9 +9,13 @@ import { cookies } from 'next/headers';
 export async function createServerSupabaseClient() {
   const cookieStore = await cookies();
 
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return null as unknown as ReturnType<typeof createServerClient>;
+  }
+
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         get(name: string) {
@@ -47,8 +51,8 @@ export function createAdminClient() {
     {
       cookies: {
         get: () => undefined,
-        set: () => {},
-        remove: () => {},
+        set: () => { },
+        remove: () => { },
       },
     }
   );
