@@ -226,7 +226,13 @@ function BaseMapInner({
         mapStyle={mapStyle}
         mapboxAccessToken={MAPBOX_TOKEN}
         reuseMaps
-        attributionControl={false} // We'll add our own or rely on the default tiny one
+        attributionControl={false}
+        onError={(e) => {
+          console.error("Mapbox Error:", e);
+          if (e.error?.message?.includes('401') || e.error?.status === 401) {
+            alert("Map Error: Invalid Token. Check your Netlify environment variables.");
+          }
+        }}
       >
         {!hideControls && (
           <>
