@@ -12,8 +12,10 @@ interface DrivePopupProps {
 export function DrivePopup({ isOpen, onClose, children, arrowOffset = 24, position }: DrivePopupProps) {
     const popupRef = useRef<HTMLDivElement>(null);
 
-    // Close on click outside
+    // Close on click outside - ONLY if not in absolute position mode
     useEffect(() => {
+        if (position) return; // Disable click outside for marker mode (handled by map click)
+
         const handleClickOutside = (event: MouseEvent) => {
             if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
                 onClose();
@@ -27,17 +29,27 @@ export function DrivePopup({ isOpen, onClose, children, arrowOffset = 24, positi
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [isOpen, onClose]);
+    }, [isOpen, onClose, position]);
 
     if (!isOpen) return null;
 
     return createPortal(
-        <div className="fixed inset-0 z-50 flex flex-col justify-end pointer-events-none">
-            {/* Dim Overlay */}
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] pointer-events-auto" onClick={onClose} />
+        <div className={`fixed inset-0 z-50 flex flex-col justify-end pointer-events-none ${position ? '' : 'pointer-events-none'}`}>
+            {/* Dim Overlay - Only show if NO position (bottom sheet mode) */}
+            {!position && (
+                <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] pointer-events-auto" onClick={onClose} />
+            )}
 
             {/* Popup Content */}
-            <div className="relative w-full px-6 pb-28 pointer-events-auto flex flex-col items-center">
+            <div className={`pointer-events-auto ${position ? 'absolute' : 'relative w-full px-6 pb-28 flex flex-col items-center'}`}
+                style={position ? {
+                    left: position.x,
+                    top: position.y,
+                    transform: 'translate(-50%, -100%)', // Center above the point
+                    marginTop: '-12px', // Gap for arrow
+                    width: 'max-content' // Don't stretch full width
+                } : undefined}
+            >
                 <style>{`
                     @keyframes slideUpFade {
                         from { opacity: 0; transform: translateY(10px) scale(0.95); }
@@ -50,7 +62,7 @@ export function DrivePopup({ isOpen, onClose, children, arrowOffset = 24, positi
 
                 <div
                     ref={popupRef}
-                    className="relative w-full max-w-sm pop-out-animation"
+                    className={`relative w-full max-w-sm pop-out-animation ${position ? 'min-w-[300px]' : ''}`}
                 >
                     <div className="w-full bg-white dark:bg-[#0D0B14] rounded-2xl border border-slate-200 dark:border-[#8B5CF6]/20 shadow-2xl overflow-hidden relative z-10">
                         {children}
@@ -59,7 +71,10 @@ export function DrivePopup({ isOpen, onClose, children, arrowOffset = 24, positi
                     {/* Arrow */}
                     <div
                         className="absolute -bottom-2 w-4 h-4 bg-white dark:bg-[#0D0B14] border-r border-b border-slate-200 dark:border-[#8B5CF6]/20 rotate-45 z-20 shadow-lg"
-                        style={{
+                        style={position ? {
+                            left: '50%',
+                            transform: 'translateX(-50%) rotate(45deg)'
+                        } : {
                             right: `${arrowOffset}px`
                         }}
                     />

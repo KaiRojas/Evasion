@@ -2,9 +2,19 @@
 
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { BaseMap, UserLocationMarker } from '@/components/map';
-import { useGeolocation } from '@/hooks';
+import { UserLocationMarker } from '@/components/map/UserLocationMarker';
+
+const BaseMap = dynamic(() => import('@/components/map/BaseMap').then(mod => mod.BaseMap), {
+    ssr: false,
+    loading: () => (
+        <div className="h-full w-full bg-[#0D0B14] flex items-center justify-center">
+            <div className="animate-spin w-8 h-8 border-2 border-[#8B5CF6] border-t-transparent rounded-full" />
+        </div>
+    )
+});
+import { useGeolocation, useDataRecorder, useWakeLock } from '@/hooks';
 import { useLocationStore } from '@/stores';
 import { DriveNav } from '@/components/navigation';
 import { SettingsPopup } from '@/components/navigation/SettingsPopup';
@@ -103,6 +113,9 @@ function useDraggable(initialPos: DraggablePosition) {
 export default function DrivePage() {
     const { location, heading, speed: currentSpeed } = useGeolocation({ watchPosition: true, enableHighAccuracy: true });
     const [isRecording, setIsRecording] = useState(false);
+    const [simulate, setSimulate] = useState(false); // New Simulation state
+    const { stats, points, requestPermissions } = useDataRecorder(isRecording, simulate); // Pass simulate flag
+    useWakeLock(true); // Keep screen on whenever in Drive Mode
     const [hiddenCards, setHiddenCards] = useState({ time: false, distance: false });
     const [highContrastCards, setHighContrastCards] = useState({ time: false, distance: false });
     const [isEditMode, setIsEditMode] = useState(false);
@@ -138,11 +151,26 @@ export default function DrivePage() {
         setFollowResetKey(Date.now());
     }, [location]);
 
+    // Auto-center on load (one-time snap when location available)
+    useEffect(() => {
+        if (location && followResetKey === 0) {
+            setFollowResetKey(Date.now());
+        }
+    }, [location, followResetKey]);
+
     const handleMapClick = useCallback((lng: number, lat: number, x: number, y: number) => {
         if (isEditMode) return;
-        setMarkerPosition({ x, y });
-        setActivePopup('marker');
-    }, [isEditMode]);
+
+        // If marker popup is already open, deselect (close it)
+        if (activePopup === 'marker') {
+            setActivePopup(null);
+            setMarkerPosition(null);
+        } else {
+            // Otherwise open it at new location
+            setMarkerPosition({ x, y });
+            setActivePopup('marker');
+        }
+    }, [isEditMode, activePopup]);
 
     const clearLongPress = useCallback(() => {
         if (longPressTimerRef.current) {
@@ -226,6 +254,7 @@ export default function DrivePage() {
                     hideControls={true}
                     mapStyle="mapbox://styles/mapbox/navigation-night-v1" // Navigation style
                     onClick={handleMapClick}
+                    routeTrace={points.map(p => [p.coords.longitude, p.coords.latitude])}
                 >
                     <UserLocationMarker location={location} />
                     {/* Traffic/Police Layers would go here */}
@@ -330,11 +359,12 @@ export default function DrivePage() {
 
             {/* Recording indicator */}
             {isRecording && (
-                <div className="absolute top-28 left-1/2 -translate-x-1/2 z-20">
-                    <div className="flex items-center gap-2 py-2 px-4 bg-[#EF4444]/10 text-[#EF4444] rounded-full border border-[#EF4444]/20">
+                <div className="absolute top-28 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1">
+                    <div className="flex items-center gap-2 py-2 px-4 bg-[#EF4444]/10 text-[#EF4444] rounded-full border border-[#EF4444]/20 backdrop-blur-md">
                         <span className="size-2 rounded-full bg-[#EF4444] animate-pulse" />
-                        <span className="text-[10px] font-black uppercase tracking-wider">Recording</span>
+                        <span className="text-[10px] font-black uppercase tracking-wider">REC {stats.pointCount}</span>
                     </div>
+                    <div className="text-[9px] text-white/40 font-mono tracking-tight">{stats.fileSizeKB}KB</div>
                 </div>
             )}
 
@@ -356,7 +386,13 @@ export default function DrivePage() {
             {/* Drive Mode Bottom Nav */}
             <DriveNav
                 isRecording={isRecording}
-                onRecordToggle={() => setIsRecording(!isRecording)}
+                onRecordToggle={async () => {
+                    if (!isRecording) {
+                        // Request permissions before starting
+                        await requestPermissions();
+                    }
+                    setIsRecording(!isRecording);
+                }}
                 onSettingsClick={() => setActivePopup(activePopup === 'settings' ? null : 'settings')}
                 onRoutesClick={() => setActivePopup(activePopup === 'routes' ? null : 'routes')}
                 onMarkerClick={() => {
@@ -369,10 +405,13 @@ export default function DrivePage() {
             <SettingsPopup
                 isOpen={activePopup === 'settings'}
                 onClose={() => setActivePopup(null)}
+                simulate={simulate} // Pass state
+                setSimulate={setSimulate} // Pass setter
             />
             <MarkerPopup
                 isOpen={activePopup === 'marker'}
                 onClose={() => setActivePopup(null)}
+                position={markerPosition}
             />
             <RoutesSheet
                 isOpen={activePopup === 'routes'}

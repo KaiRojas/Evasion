@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { MapProvider, useMapContext } from './MapProvider';
-import Map, { NavigationControl, ScaleControl, useMap as useReactMapGL, type ViewStateChangeEvent } from 'react-map-gl/mapbox';
+import Map, { NavigationControl, ScaleControl, useMap as useReactMapGL, type ViewStateChangeEvent, Source, Layer } from 'react-map-gl/mapbox';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { applyEvasionMapTheme } from './mapTheme';
@@ -21,7 +21,7 @@ interface BaseMapProps {
     zoom: number;
     pitch?: number;
     bearing?: number;
-    padding?: { top: number; bottom: number; left: number; right: number };
+    padding?: { top?: number; bottom?: number; left?: number; right?: number };
   };
   followUser?: boolean;
   followResumeMs?: number;
@@ -34,10 +34,11 @@ interface BaseMapProps {
   mapStyle?: string;
   theme?: 'evasion' | 'default';
   antialias?: boolean;
+  routeTrace?: [number, number][]; // Array of [lng, lat]
 }
 
 type MapViewState = NonNullable<BaseMapProps['viewState']> & {
-  padding?: { top: number; bottom: number; left: number; right: number };
+  padding?: { top?: number; bottom?: number; left?: number; right?: number };
 };
 
 // Internal component to sync state between react-map-gl and our custom context
@@ -102,7 +103,8 @@ function BaseMapInner({
   hideControls = false,
   mapStyle = "mapbox://styles/mapbox/dark-v11",
   theme = 'evasion',
-  antialias = true
+  antialias = true,
+  routeTrace
 }: BaseMapProps) {
   const { setMap } = useMapContext();
   const [internalViewState, setInternalViewState] = useState<MapViewState>({
@@ -140,7 +142,10 @@ function BaseMapInner({
     externalViewState?.zoom,
     externalViewState?.pitch,
     externalViewState?.bearing,
-    externalViewState?.padding
+    externalViewState?.padding?.top,
+    externalViewState?.padding?.bottom,
+    externalViewState?.padding?.left,
+    externalViewState?.padding?.right
   ]);
 
   useEffect(() => {
@@ -165,7 +170,10 @@ function BaseMapInner({
     externalViewState?.zoom,
     externalViewState?.pitch,
     externalViewState?.bearing,
-    externalViewState?.padding
+    externalViewState?.padding?.top,
+    externalViewState?.padding?.bottom,
+    externalViewState?.padding?.left,
+    externalViewState?.padding?.right
   ]);
 
   useEffect(() => {
@@ -234,6 +242,37 @@ function BaseMapInner({
         />
 
         <MapThemeSync enabled={theme === 'evasion'} />
+
+        {/* Route Trace Layer */}
+        {routeTrace && routeTrace.length > 1 && (
+          <Source
+            id="route-trace-source"
+            type="geojson"
+            data={{
+              type: 'Feature',
+              properties: {},
+              geometry: {
+                type: 'LineString',
+                coordinates: routeTrace
+              }
+            }}
+          >
+            <Layer
+              id="route-trace-layer"
+              type="line"
+              layout={{
+                'line-join': 'round',
+                'line-cap': 'round'
+              }}
+              paint={{
+                'line-color': '#8B5CF6', // Evasion Purple
+                'line-width': 4,
+                'line-opacity': 0.8,
+                'line-blur': 1
+              }}
+            />
+          </Source>
+        )}
 
         {children}
       </Map>

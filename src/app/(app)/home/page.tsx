@@ -3,11 +3,13 @@
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
+import { useRunHistory } from '@/stores';
 
 function HomeContent() {
     const searchParams = useSearchParams();
     const [isGuest, setIsGuest] = useState(false);
     const [userName, setUserName] = useState('');
+    const runs = useRunHistory(state => state.runs);
 
     useEffect(() => {
         // Check if guest param is in URL
@@ -159,27 +161,43 @@ function HomeContent() {
                 </div>
 
                 <div className="flex flex-col gap-3">
-                    <ActivityCard
-                        title="Canyon Run"
-                        location="Mulholland Highway"
-                        distance="12.4 mi"
-                        time="18m 42s"
-                        rating={4.8}
-                    />
-                    <ActivityCard
-                        title="Midnight Sprint"
-                        location="Downtown Tunnel Loop"
-                        distance="5.2 mi"
-                        time="6m 15s"
-                        rating={4.2}
-                    />
-                    <ActivityCard
-                        title="Coastal Cruise"
-                        location="PCH Northbound"
-                        distance="34.1 mi"
-                        time="45m 10s"
-                        rating={5.0}
-                    />
+                    {runs.length === 0 ? (
+                        <div className="p-8 text-center border border-dashed border-white/10 rounded-xl bg-white/5">
+                            <p className="text-zinc-500 mb-2">No drives recorded yet.</p>
+                            <Link href="/drive" className="text-[#8B5CF6] text-sm font-bold hover:underline">
+                                Start your first drive
+                            </Link>
+                        </div>
+                    ) : (
+                        runs.slice(0, 3).map(run => (
+                            <ActivityCard
+                                key={run.id}
+                                title={`Test Run ${new Date(run.timestamp).toLocaleDateString()}`}
+                                location="Unknown Location" // We don't have reverse geocoding yet
+                                distance={`${run.distanceKm.toFixed(2)} km`}
+                                time={`${Math.floor(run.durationMs / 60000)}m ${Math.floor((run.durationMs % 60000) / 1000)}s`}
+                                rating={5.0} // Placeholder
+                                onClick={() => {
+                                    // Trigger download of this run
+                                    // We need to fetch the full data from IDB
+                                    const download = async () => {
+                                        const data = await useRunHistory.getState().getRunData(run.id);
+                                        if (!data) return;
+                                        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = `evasion-run-${run.id}.json`;
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        document.body.removeChild(a);
+                                        URL.revokeObjectURL(url);
+                                    };
+                                    download();
+                                }}
+                            />
+                        ))
+                    )}
                 </div>
             </div>
         </div>
@@ -242,15 +260,20 @@ function ActivityCard({
     distance,
     time,
     rating,
+    onClick
 }: {
     title: string;
     location: string;
     distance: string;
     time: string;
     rating: number;
+    onClick?: () => void;
 }) {
     return (
-        <div className="flex items-center gap-4 bg-[#0D0B14] p-3 rounded-xl border border-[rgba(255,255,255,0.05)] hover:border-[#8B5CF6]/30 transition-colors cursor-pointer group">
+        <div
+            onClick={onClick}
+            className="flex items-center gap-4 bg-[#0D0B14] p-3 rounded-xl border border-[rgba(255,255,255,0.05)] hover:border-[#8B5CF6]/30 transition-colors cursor-pointer group"
+        >
             <div className="w-16 h-16 rounded-lg overflow-hidden bg-[#18181B] flex-shrink-0 flex items-center justify-center relative">
                 {/* Map Placeholder Image */}
                 <div

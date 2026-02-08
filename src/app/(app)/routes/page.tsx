@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { MapProvider, BaseMap, RouteLayer } from '@/components/map';
 import Link from 'next/link';
+import { useRunHistory } from '@/stores';
 
 // Define a unified Route interface
 interface Route {
@@ -85,10 +86,24 @@ type Tab = 'discover' | 'my-routes' | 'history';
 
 export default function RoutesPage() {
     const [activeTab, setActiveTab] = useState<Tab>('discover');
+    const runs = useRunHistory(state => state.runs);
+
+    // Convert runs to Route objects
+    const historyRoutes: Route[] = runs.map(run => ({
+        id: run.id,
+        name: `Test Run ${new Date(run.timestamp).toLocaleDateString()}`,
+        distance: `${run.distanceKm.toFixed(1)} mi`, // Approx conversion or store as mi
+        duration: `${Math.floor(run.durationMs / 60000)} min`,
+        date: new Date(run.timestamp).toLocaleDateString(),
+        // Use a generic map image or a placeholder since we don't generate static map images yet
+        image: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?q=80&w=1966&auto=format&fit=crop',
+        coordinates: run.previewTrace,
+        rating: 5.0
+    }));
 
     const routes = activeTab === 'discover' ? DISCOVER_ROUTES
         : activeTab === 'my-routes' ? MY_ROUTES
-            : HISTORY_ROUTES;
+            : historyRoutes;
 
     return (
         <div className="flex flex-col min-h-screen pb-24 bg-[#06040A]">

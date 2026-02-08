@@ -3,9 +3,11 @@ import { DrivePopup } from './DrivePopup';
 interface SettingsPopupProps {
     isOpen: boolean;
     onClose: () => void;
+    simulate?: boolean;
+    setSimulate?: (val: boolean) => void;
 }
 
-export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
+export function SettingsPopup({ isOpen, onClose, simulate, setSimulate }: SettingsPopupProps) {
     return (
         <DrivePopup isOpen={isOpen} onClose={onClose} arrowOffset={32}>
             <button className="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group border-b border-slate-100 dark:border-white/5">
