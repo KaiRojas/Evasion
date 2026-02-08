@@ -237,6 +237,11 @@ export default function DrivePage() {
 
             {/* Map Background */}
             <div className="absolute inset-0">
+                {/* DEBUG OVERLAY - REMOVE AFTER FIX */}
+                <div style={{ position: 'absolute', top: 0, left: 0, zIndex: 9999, background: 'red', color: 'white', padding: '4px', fontSize: '10px' }}>
+                    DEBUG: Token Length: {process.env.NEXT_PUBLIC_MAPBOX_TOKEN?.length || 0} |
+                    Prefix: {process.env.NEXT_PUBLIC_MAPBOX_TOKEN?.substring(0, 5) || 'NONE'}
+                </div>
                 <BaseMap
                     viewState={location ? {
                         longitude: location.longitude,
@@ -269,7 +274,7 @@ export default function DrivePage() {
             >
                 <div className={`flex flex-col items-center transition-opacity ${speed.isDragging ? 'opacity-70' : ''}`}>
                     <span className="text-5xl font-black tracking-tighter italic text-[#EF4444]">
-                        {currentSpeed ? Math.round(currentSpeed) : '--'}
+                        {currentSpeed ? (currentSpeed < 3 ? 0 : Math.round(currentSpeed)) : '--'}
                     </span>
                     <span className="text-xs font-bold text-[#EF4444]/70 uppercase tracking-widest">MPH</span>
                 </div>
