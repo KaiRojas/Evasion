@@ -31,6 +31,12 @@ export function UserLocationMarker({ location, label = 'You' }: UserLocationMark
         </div>
       `;
 
+
+      const marker = new mapboxgl.Marker(el)
+        .setLngLat([location.longitude, location.latitude])
+        .addTo(map);
+
+      markerRef.current = marker;
     }
 
     return () => {

@@ -237,11 +237,6 @@ export default function DrivePage() {
 
             {/* Map Background */}
             <div className="absolute inset-0">
-                {/* DEBUG OVERLAY - REMOVE AFTER FIX */}
-                <div style={{ position: 'absolute', top: 0, left: 0, zIndex: 9999, background: 'red', color: 'white', padding: '4px', fontSize: '10px' }}>
-                    DEBUG: Token Length: {process.env.NEXT_PUBLIC_MAPBOX_TOKEN?.length || 0} |
-                    Prefix: {process.env.NEXT_PUBLIC_MAPBOX_TOKEN?.substring(0, 5) || 'NONE'}
-                </div>
                 <BaseMap
                     viewState={location ? {
                         longitude: location.longitude,
@@ -249,7 +244,7 @@ export default function DrivePage() {
                         zoom: 17, // Closer zoom for driving
                         pitch: 60, // Tilted view
                         bearing: heading || 0, // Follow heading
-                        padding: { top: 0, bottom: 120, left: 0, right: 0 } // Offset center to bottom
+                        padding: { top: 0, bottom: 0, left: 0, right: 0 } // Center of screen
                     } : undefined}
                     followUser={true}
                     followResumeMs={5000}
@@ -257,7 +252,8 @@ export default function DrivePage() {
                     initialZoom={15}
                     initialPitch={60}
                     hideControls={true}
-                    mapStyle="mapbox://styles/mapbox/navigation-night-v1" // Navigation style
+                    mapStyle="mapbox://styles/mapbox/dark-v11" // Standard Dark Mode (Safer than navigation-night)
+                    theme="default" // Disable custom theme for stability
                     onClick={handleMapClick}
                     routeTrace={points.map(p => [p.coords.longitude, p.coords.latitude])}
                 >

@@ -25,8 +25,8 @@ export function DriveNav({
     };
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 px-4 flex justify-center">
-            <div className="glass h-20 w-full max-w-md rounded-full px-2 grid grid-cols-5 items-center shadow-2xl relative bg-[rgba(13,11,20,0.7)] backdrop-blur-xl border border-[rgba(255,255,255,0.1)] mb-2">
+        <nav className="fixed bottom-0 left-0 right-0 z-50 px-4 flex justify-center pb-6">
+            <div className="glass h-24 w-full max-w-lg rounded-full px-4 grid grid-cols-5 items-center shadow-2xl relative bg-[rgba(13,11,20,0.8)] backdrop-blur-xl border border-[rgba(255,255,255,0.15)]">
                 {/* Routes Button */}
                 <button
                     className="flex flex-col items-center justify-center gap-0.5 opacity-60 hover:opacity-100 transition-opacity"
