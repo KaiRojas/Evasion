@@ -5,3 +5,6 @@
 export { useGeolocation } from './use-geolocation';
 export { useAuth } from './use-auth';
 export { useRealtime } from './use-realtime';
+export { useDataRecorder } from './use-data-recorder';
+export { useDeviceOrientation } from './use-device-orientation';
+export { useWakeLock } from './use-wake-lock';

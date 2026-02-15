@@ -4,10 +4,49 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
 
+import { useDeviceOrientation } from '@/hooks';
+
 function HomeContent() {
     const searchParams = useSearchParams();
     const [isGuest, setIsGuest] = useState(false);
     const [userName, setUserName] = useState('');
+
+    const { gamma, beta } = useDeviceOrientation();
+
+    // Calculate dynamic shadow based on tilt
+    // Calculate dynamic border glow based on tilt
+    // Desktop Default: Subtle glow on all sides
+    // Mobile: Opacity based on tilt direction
+
+    const maxTilt = 15; // Degrees for full opacity
+
+    // Gamma (Left/Right tilt)
+    const rightOpacity = gamma && gamma < 0 ? Math.min(Math.abs(gamma) / maxTilt, 1) : 0;
+    const leftOpacity = gamma && gamma > 0 ? Math.min(gamma / maxTilt, 1) : 0;
+
+    // Beta (Front/Back tilt)
+    const bottomOpacity = beta && beta > 0 ? Math.min(beta / maxTilt, 1) : 0;
+    const topOpacity = beta && beta < 0 ? Math.min(Math.abs(beta) / maxTilt, 1) : 0;
+
+    // Colors:
+    // Left: Teal
+    // Right: Pink
+    // Top: Blue
+    // Bottom: Purple
+
+    const dynamicShadowStyle = {
+        boxShadow: `
+            ${leftOpacity > 0 ? `-2px 0 10px -1px rgba(20, 184, 166, ${leftOpacity})` : '0 0 0 0 transparent'},
+            ${rightOpacity > 0 ? `2px 0 10px -1px rgba(236, 72, 153, ${rightOpacity})` : '0 0 0 0 transparent'},
+            ${topOpacity > 0 ? `0 -2px 10px -1px rgba(59, 130, 246, ${topOpacity})` : '0 0 0 0 transparent'},
+            ${bottomOpacity > 0 ? `0 2px 10px -1px rgba(147, 51, 234, ${bottomOpacity})` : '0 0 0 0 transparent'}
+        `.replace(/,\s*0 0 0 0 transparent/g, '').replace(/^0 0 0 0 transparent,\s*/, '') || '0 0 0 0 transparent'
+    };
+
+    // If no sensor data (desktop), show a static subtle outline
+    if (!gamma && !beta) {
+        dynamicShadowStyle.boxShadow = '0 0 8px -2px rgba(139, 92, 246, 0.3)';
+    }
 
     useEffect(() => {
         // Check if guest param is in URL
@@ -34,7 +73,7 @@ function HomeContent() {
 
             {/* Greeting */}
             <div className="px-4 pt-6 pb-4">
-                <h2 className="text-[#F5F5F4] text-3xl font-bold tracking-tight">
+                <h2 className="text-[#F5F5F4] text-[2rem] font-bold tracking-tight">
                     {(() => {
                         const hour = new Date().getHours();
                         if (isGuest) return "Hey, Guest";
@@ -69,6 +108,7 @@ function HomeContent() {
                         value="1,240"
                         icon="distance"
                         color="text-[#FDBA74]" // Orange-tan
+                        style={dynamicShadowStyle}
                     />
                     <StatCard
                         label="Top Speed"
@@ -76,12 +116,14 @@ function HomeContent() {
                         unit="mph"
                         icon="speed"
                         color="text-[#F9A8D4]" // Light pink
+                        style={dynamicShadowStyle}
                     />
                     <StatCard
                         label="Total Drives"
                         value="42"
                         icon="route"
                         color="text-[#A7F3D0]" // Light green
+                        style={dynamicShadowStyle}
                     />
                     <StatCard
                         label="Drive Time"
@@ -89,6 +131,7 @@ function HomeContent() {
                         unit="h"
                         icon="schedule"
                         color="text-[#BAE6FD]" // Light blue
+                        style={dynamicShadowStyle}
                     />
                 </div>
                 {/* Secondary Stats Row */}
@@ -191,16 +234,21 @@ function StatCard({
     value,
     unit,
     icon,
-    color = "text-[#F5F5F4]"
+    color = "text-[#F5F5F4]",
+    style
 }: {
     label: string;
     value: string;
     unit?: string;
     icon: string;
     color?: string;
+    style?: React.CSSProperties;
 }) {
     return (
-        <div className="flex flex-col gap-2 rounded-xl p-4 bg-[#0D0B14] border border-[rgba(255,255,255,0.05)] shadow-sm hover:border-white/10 transition-colors">
+        <div
+            className="flex flex-col gap-2 rounded-xl p-4 bg-[#0D0B14] border border-[rgba(255,255,255,0.05)] hover:border-white/10 transition-colors duration-75"
+            style={style}
+        >
             <div className="flex items-center justify-between">
                 <p className="text-[#A8A8A8] text-[10px] font-bold uppercase tracking-wider">{label}</p>
                 <span className="material-symbols-outlined text-[#8B5CF6] text-lg opacity-80">{icon}</span>
